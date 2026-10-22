@@ -1,0 +1,38 @@
+name: EAS Update (OTA)
+
+on:
+  push:
+    branches:
+      - main
+      - preview
+
+jobs:
+  update:
+    name: Publicar actualización OTA
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇️ Checkout del código
+        uses: actions/checkout@v4
+
+      - name: 🟢 Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.14.0
+          cache: npm
+
+      - name: 📦 Instalar dependencias
+        run: npm ci
+
+      - name: 🚀 Configurar EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 📲 Publicar a Canal Production (main)
+        if: github.ref == 'refs/heads/main'
+        run: npx eas-cli@latest update --channel production --message "${{ github.event.head_commit.message }}"
+
+      - name: 🧪 Publicar a Canal Preview
+        if: github.ref == 'refs/heads/preview'
+        run: npx eas-cli@latest update --channel preview --message "${{ github.event.head_commit.message }}"

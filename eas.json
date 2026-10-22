@@ -9,6 +9,7 @@
       "distribution": "internal"
     },
     "preview": {
+      "channel": "preview",
       "distribution": "internal",
       "node": "22.14.0",
       "android": {
@@ -19,7 +20,18 @@
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_-ArAjOTUFanxZMxlIE9Gng_4jkXJHuQ"
       }
     },
-    "production": {}
+    "production": {
+      "channel": "production",
+      "distribution": "internal",
+      "node": "22.14.0",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://nkkadatiqdfpmbxibywd.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_-ArAjOTUFanxZMxlIE9Gng_4jkXJHuQ"
+      }
+    }
   },
   "submit": {
     "production": {}

@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "couple-sync",
-    "slug": "couple-sync",
+    "name": "Couple Sync",
+    "slug": "couple-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -11,6 +11,7 @@
       "icon": "./assets/expo.icon"
     },
     "android": {
+      "package": "com.couplesync.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -37,6 +38,11 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "6a8b103f-7eec-4715-b826-9cc02b676199"
+      }
     }
   }
 }

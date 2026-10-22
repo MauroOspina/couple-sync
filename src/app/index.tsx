@@ -21,6 +21,7 @@ import {
   fetchRemoteProducts,
   upsertRemoteProduct,
   upsertBatchRemoteProducts,
+  deleteRemoteProduct,
   subscribeToHousehold
 } from '../services/inventorySync';
 import {
@@ -119,6 +120,12 @@ export default function AppMainScreen() {
   const [showHouseholdModal, setShowHouseholdModal] = useState(false);
   const [members, setMembers] = useState<HouseholdMember[]>([]);
 
+  // Modal de edición / eliminación de producto
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editCategory, setEditCategory] = useState('');
+  const [editStatus, setEditStatus] = useState<StockStatus>('ok');
+
   // 1. Verificar sesión activa
   useEffect(() => {
     const checkSession = async () => {
@@ -182,19 +189,29 @@ export default function AppMainScreen() {
           await upsertBatchRemoteProducts(localData, household.id);
         }
 
-        unsubscribe = subscribeToHousehold(household.id, remoteProduct => {
-          setProducts(prev => {
-            const exists = prev.some(p => p.id === remoteProduct.id);
-            let updated: Product[];
-            if (exists) {
-              updated = prev.map(p => (p.id === remoteProduct.id ? remoteProduct : p));
-            } else {
-              updated = [remoteProduct, ...prev];
-            }
-            saveLocalProducts(updated);
-            return updated;
-          });
-        });
+        unsubscribe = subscribeToHousehold(
+          household.id,
+          remoteProduct => {
+            setProducts(prev => {
+              const exists = prev.some(p => p.id === remoteProduct.id);
+              let updated: Product[];
+              if (exists) {
+                updated = prev.map(p => (p.id === remoteProduct.id ? remoteProduct : p));
+              } else {
+                updated = [remoteProduct, ...prev];
+              }
+              saveLocalProducts(updated);
+              return updated;
+            });
+          },
+          deletedProductId => {
+            setProducts(prev => {
+              const updated = prev.filter(p => p.id !== deletedProductId);
+              saveLocalProducts(updated);
+              return updated;
+            });
+          }
+        );
       }
     };
 
@@ -332,6 +349,56 @@ export default function AppMainScreen() {
     const updatedTarget: Product = { ...target, inCart: !target.inCart };
     const nextList = products.map(p => (p.id === id ? updatedTarget : p));
     saveAndSync(nextList, updatedTarget);
+  };
+
+  const openEditModal = (product: Product) => {
+    setEditingProduct(product);
+    setEditName(product.name);
+    setEditCategory(product.category || 'Otros');
+    setEditStatus(product.status);
+  };
+
+  const handleUpdateProduct = () => {
+    if (!editingProduct) return;
+    const cleanName = editName.trim();
+    if (!cleanName) {
+      Alert.alert('Nombre requerido', 'Ingresa un nombre para el producto.');
+      return;
+    }
+
+    const updated: Product = {
+      ...editingProduct,
+      name: cleanName,
+      category: editCategory || editingProduct.category,
+      status: editStatus,
+    };
+
+    const nextList = products.map(p => (p.id === editingProduct.id ? updated : p));
+    saveAndSync(nextList, updated);
+    setEditingProduct(null);
+  };
+
+  const handleDeleteProduct = (product: Product) => {
+    Alert.alert(
+      '¿Eliminar producto?',
+      `¿Deseas eliminar "${product.name}" del inventario? Esta acción no se puede deshacer.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: () => {
+            const nextList = products.filter(p => p.id !== product.id);
+            setProducts(nextList);
+            saveLocalProducts(nextList);
+            if (isSupabaseConfigured && household) {
+              deleteRemoteProduct(product.id, household.id);
+            }
+            setEditingProduct(null);
+          },
+        },
+      ]
+    );
   };
 
   const finishMarket = () => {
@@ -546,19 +613,29 @@ export default function AppMainScreen() {
             {displayedProducts.map(item => {
               const cfg = statusConfig[item.status];
               return (
-                <TouchableOpacity
-                  key={item.id}
-                  style={[styles.productListItem, { borderLeftColor: cfg.color }]}
-                  onPress={() => (isMarketMode ? toggleCart(item.id) : cycleStatus(item.id, item.status))}
-                >
-                  <Text style={styles.productIconSmall}>{CATEGORIES[item.category] || '📦'}</Text>
-                  <Text style={styles.productNameList} numberOfLines={2}>
-                    {item.name}
-                  </Text>
-                  <View style={[styles.statusPillList, { backgroundColor: cfg.bgColor }]}>
-                    <Text style={[styles.statusPillTextList, { color: cfg.color }]}>{cfg.label}</Text>
-                  </View>
-                </TouchableOpacity>
+                <View key={item.id} style={[styles.productListItem, { borderLeftColor: cfg.color }]}>
+                  <TouchableOpacity
+                    style={styles.productItemContent}
+                    onPress={() => (isMarketMode ? toggleCart(item.id) : cycleStatus(item.id, item.status))}
+                    onLongPress={() => openEditModal(item)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.productIconSmall}>{CATEGORIES[item.category] || '📦'}</Text>
+                    <Text style={styles.productNameList} numberOfLines={2}>
+                      {item.name}
+                    </Text>
+                    <View style={[styles.statusPillList, { backgroundColor: cfg.bgColor }]}>
+                      <Text style={[styles.statusPillTextList, { color: cfg.color }]}>{cfg.label}</Text>
+                    </View>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.editActionBtn}
+                    onPress={() => openEditModal(item)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Text style={styles.editActionBtnText}>✏️</Text>
+                  </TouchableOpacity>
+                </View>
               );
             })}
           </View>
@@ -588,9 +665,14 @@ export default function AppMainScreen() {
             )}
 
             {selectedCategory && !isMarketMode && (
-              <Text style={styles.categoryHeaderTitle}>
-                {CATEGORIES[selectedCategory]} {selectedCategory}
-              </Text>
+              <View style={styles.categoryHeaderWrap}>
+                <Text style={styles.categoryHeaderTitle}>
+                  {CATEGORIES[selectedCategory]} {selectedCategory}
+                </Text>
+                <Text style={styles.categoryHeaderSubtitle}>
+                  Toca para cambiar estado • Toca ✏️ para editar o eliminar
+                </Text>
+              </View>
             )}
 
             <View style={styles.listContainer}>
@@ -603,32 +685,52 @@ export default function AppMainScreen() {
                 const cfg = statusConfig[item.status];
                 if (isMarketMode) {
                   return (
+                    <View key={item.id} style={[styles.productListItem, item.inCart && styles.productListItemInCart]}>
+                      <TouchableOpacity
+                        style={styles.productItemContent}
+                        onPress={() => toggleCart(item.id)}
+                        onLongPress={() => openEditModal(item)}
+                        activeOpacity={0.7}
+                      >
+                        <View style={[styles.checkbox, item.inCart && styles.checkboxChecked]} />
+                        <Text style={styles.productIconSmall}>{CATEGORIES[item.category] || '📦'}</Text>
+                        <Text style={[styles.productNameList, item.inCart && styles.productNameCompleted]}>{item.name}</Text>
+                        <View style={[styles.statusPillList, { backgroundColor: cfg.bgColor }]}>
+                          <Text style={[styles.statusPillTextList, { color: cfg.color }]}>{cfg.label}</Text>
+                        </View>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.editActionBtn}
+                        onPress={() => openEditModal(item)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Text style={styles.editActionBtnText}>✏️</Text>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                }
+                return (
+                  <View key={item.id} style={[styles.productListItem, { borderLeftColor: cfg.color }]}>
                     <TouchableOpacity
-                      key={item.id}
-                      style={[styles.productListItem, item.inCart && styles.productListItemInCart]}
-                      onPress={() => toggleCart(item.id)}
+                      style={styles.productItemContent}
+                      onPress={() => cycleStatus(item.id, item.status)}
+                      onLongPress={() => openEditModal(item)}
+                      activeOpacity={0.7}
                     >
-                      <View style={[styles.checkbox, item.inCart && styles.checkboxChecked]} />
                       <Text style={styles.productIconSmall}>{CATEGORIES[item.category] || '📦'}</Text>
-                      <Text style={[styles.productNameList, item.inCart && styles.productNameCompleted]}>{item.name}</Text>
+                      <Text style={styles.productNameList}>{item.name}</Text>
                       <View style={[styles.statusPillList, { backgroundColor: cfg.bgColor }]}>
                         <Text style={[styles.statusPillTextList, { color: cfg.color }]}>{cfg.label}</Text>
                       </View>
                     </TouchableOpacity>
-                  );
-                }
-                return (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={[styles.productListItem, { borderLeftColor: cfg.color }]}
-                    onPress={() => cycleStatus(item.id, item.status)}
-                  >
-                    <Text style={styles.productIconSmall}>{CATEGORIES[item.category] || '📦'}</Text>
-                    <Text style={styles.productNameList}>{item.name}</Text>
-                    <View style={[styles.statusPillList, { backgroundColor: cfg.bgColor }]}>
-                      <Text style={[styles.statusPillTextList, { color: cfg.color }]}>{cfg.label}</Text>
-                    </View>
-                  </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.editActionBtn}
+                      onPress={() => openEditModal(item)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Text style={styles.editActionBtnText}>✏️</Text>
+                    </TouchableOpacity>
+                  </View>
                 );
               })}
             </View>
@@ -697,6 +799,139 @@ export default function AppMainScreen() {
             </View>
           </View>
         </View>
+      </Modal>
+
+      {/* Modal para Editar o Eliminar Producto */}
+      <Modal
+        visible={editingProduct !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEditingProduct(null)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.editModalCard}>
+            <View style={styles.editModalHeader}>
+              <Text style={styles.modalTitle}>✏️ Editar Producto</Text>
+              <TouchableOpacity
+                style={styles.closeIconBtn}
+                onPress={() => setEditingProduct(null)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text style={styles.closeIconText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.editModalScroll}
+            >
+              {/* Nombre del producto */}
+              <Text style={styles.fieldLabel}>Nombre del producto</Text>
+              <TextInput
+                style={styles.editTextInput}
+                value={editName}
+                onChangeText={setEditName}
+                placeholder="Ej: Leche deslactosada..."
+                selectTextOnFocus
+                autoCapitalize="sentences"
+              />
+
+              {/* Categoría */}
+              <Text style={styles.fieldLabel}>Categoría</Text>
+              <ScrollView
+                style={styles.categoryPickerContainer}
+                nestedScrollEnabled
+                showsVerticalScrollIndicator={false}
+              >
+                <View style={styles.categoryPickerWrap}>
+                  {Object.keys(CATEGORIES).map(cat => {
+                    const isSelected = editCategory === cat;
+                    return (
+                      <TouchableOpacity
+                        key={cat}
+                        style={[
+                          styles.categoryChip,
+                          isSelected && styles.categoryChipSelected,
+                        ]}
+                        onPress={() => setEditCategory(cat)}
+                      >
+                        <Text style={styles.categoryChipEmoji}>{CATEGORIES[cat]}</Text>
+                        <Text
+                          style={[
+                            styles.categoryChipText,
+                            isSelected && styles.categoryChipTextSelected,
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {cat}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </ScrollView>
+
+              {/* Estado actual */}
+              <Text style={styles.fieldLabel}>Estado en inventario</Text>
+              <View style={styles.statusOptionsRow}>
+                {(['ok', 'low', 'out'] as StockStatus[]).map(st => {
+                  const cfg = statusConfig[st];
+                  const isSelected = editStatus === st;
+                  return (
+                    <TouchableOpacity
+                      key={st}
+                      style={[
+                        styles.statusOptionBtn,
+                        { borderColor: isSelected ? cfg.color : '#E2E8F0' },
+                        isSelected && { backgroundColor: cfg.bgColor },
+                      ]}
+                      onPress={() => setEditStatus(st)}
+                    >
+                      <Text
+                        style={[
+                          styles.statusOptionText,
+                          { color: isSelected ? cfg.color : '#64748B' },
+                          isSelected && { fontWeight: '700' },
+                        ]}
+                      >
+                        {cfg.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Botón Eliminar */}
+              {editingProduct && (
+                <TouchableOpacity
+                  style={styles.deleteProductButton}
+                  onPress={() => handleDeleteProduct(editingProduct)}
+                >
+                  <Text style={styles.deleteProductButtonText}>🗑️ Eliminar Producto</Text>
+                </TouchableOpacity>
+              )}
+            </ScrollView>
+
+            {/* Botones de acción inferiores */}
+            <View style={styles.editModalFooter}>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => setEditingProduct(null)}
+              >
+                <Text style={styles.modalCancelBtnText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalSaveBtn}
+                onPress={handleUpdateProduct}
+              >
+                <Text style={styles.modalSaveBtnText}>💾 Guardar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {isMarketMode ? (
@@ -961,4 +1196,193 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 15,
   },
+
+  // Category Header & Subtitle
+  categoryHeaderWrap: {
+    marginBottom: 15,
+  },
+  categoryHeaderSubtitle: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 2,
+  },
+
+  // Product List item enhancements
+  productItemContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  editActionBtn: {
+    paddingVertical: 7,
+    paddingHorizontal: 9,
+    marginLeft: 8,
+    borderRadius: 10,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  editActionBtnText: {
+    fontSize: 14,
+  },
+
+  // Edit Modal styles
+  editModalCard: {
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 22,
+    width: '100%',
+    maxWidth: 420,
+    maxHeight: '88%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 5,
+  },
+  editModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  closeIconBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeIconText: {
+    fontSize: 16,
+    color: '#64748B',
+    fontWeight: '700',
+  },
+  editModalScroll: {
+    paddingBottom: 8,
+  },
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
+    marginBottom: 6,
+    marginTop: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  editTextInput: {
+    height: 48,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    fontSize: 16,
+    color: '#1E293B',
+  },
+  categoryPickerContainer: {
+    maxHeight: 130,
+    marginBottom: 4,
+  },
+  categoryPickerWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingVertical: 2,
+  },
+  categoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  categoryChipSelected: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#3B82F6',
+  },
+  categoryChipEmoji: {
+    fontSize: 14,
+    marginRight: 6,
+  },
+  categoryChipText: {
+    fontSize: 12,
+    color: '#475569',
+    fontWeight: '500',
+  },
+  categoryChipTextSelected: {
+    color: '#2563EB',
+    fontWeight: '700',
+  },
+  statusOptionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 2,
+    marginBottom: 10,
+  },
+  statusOptionBtn: {
+    flex: 1,
+    height: 42,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  statusOptionText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  deleteProductButton: {
+    marginTop: 14,
+    paddingVertical: 12,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  deleteProductButtonText: {
+    color: '#DC2626',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  editModalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  modalCancelBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#F1F5F9',
+  },
+  modalCancelBtnText: {
+    color: '#475569',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  modalSaveBtn: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    backgroundColor: '#3B82F6',
+  },
+  modalSaveBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
+  },
 });
+

@@ -139,9 +139,28 @@ export const upsertBatchRemoteProducts = async (products: Product[], householdId
   }
 };
 
+export const deleteRemoteProduct = async (productId: string, householdId: string): Promise<void> => {
+  if (!isSupabaseConfigured) return;
+
+  try {
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', productId)
+      .eq('household_id', householdId);
+
+    if (error) {
+      console.warn('⚠️ Error al eliminar producto en Supabase:', error.message);
+    }
+  } catch (e) {
+    console.warn('⚠️ Error en deleteRemoteProduct:', e);
+  }
+};
+
 export const subscribeToHousehold = (
   householdId: string,
-  onProductChange: (product: Product) => void
+  onProductChange: (product: Product) => void,
+  onProductDelete?: (productId: string) => void
 ) => {
   if (!isSupabaseConfigured) return () => {};
 
@@ -156,7 +175,12 @@ export const subscribeToHousehold = (
         filter: `household_id=eq.${householdId}`,
       },
       payload => {
-        if (payload.new && typeof payload.new === 'object') {
+        if (payload.eventType === 'DELETE') {
+          const oldItem = payload.old as any;
+          if (oldItem && oldItem.id && onProductDelete) {
+            onProductDelete(oldItem.id);
+          }
+        } else if (payload.new && typeof payload.new === 'object') {
           const item = payload.new as any;
           const mappedProduct: Product = {
             id: item.id,
@@ -175,3 +199,4 @@ export const subscribeToHousehold = (
     supabase.removeChannel(channel);
   };
 };
+

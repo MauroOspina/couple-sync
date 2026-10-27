@@ -1,4 +1,5 @@
 import * as WebBrowser from 'expo-web-browser';
+import * as Crypto from 'expo-crypto';
 import { makeRedirectUri } from 'expo-auth-session';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { User } from '@supabase/supabase-js';
@@ -119,12 +120,22 @@ export const getUserHousehold = async (userId: string): Promise<Household | null
   }
 };
 
+const generateHouseholdCode = (): string => {
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const bytes = Crypto.getRandomBytes(8);
+  let result = '';
+  for (let i = 0; i < 8; i++) {
+    result += chars[bytes[i] % chars.length];
+  }
+  return 'HOGAR-' + result;
+};
+
 export const createHousehold = async (name: string, user: User): Promise<Household> => {
   if (!isSupabaseConfigured) {
     throw new Error('Supabase no está configurado');
   }
 
-  const code = 'HOGAR-' + Math.floor(1000 + Math.random() * 9000);
+  const code = generateHouseholdCode();
   const { data: household, error: houseError } = await supabase
     .from('households')
     .insert({
@@ -158,31 +169,14 @@ export const joinHouseholdByCode = async (code: string, user: User): Promise<Hou
   }
 
   const rawCode = code.trim().toUpperCase();
-  const formattedCode = rawCode.startsWith('HOGAR-') ? rawCode : `HOGAR-${rawCode}`;
 
-  const { data: household, error: houseError } = await supabase
-    .from('households')
-    .select('*')
-    .or(`invite_code.eq.${rawCode},invite_code.eq.${formattedCode}`)
-    .maybeSingle();
+  const { data, error } = await supabase.rpc('join_household', { code: rawCode });
 
-  if (houseError || !household) {
+  if (error || !data) {
     throw new Error(`No encontramos ningún hogar con el código "${rawCode}". Verifica con tu pareja e inténtalo de nuevo.`);
   }
 
-  const { error: memberError } = await supabase
-    .from('household_members')
-    .upsert({
-      household_id: household.id,
-      user_id: user.id,
-      user_email: user.email,
-      user_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Pareja',
-      role: 'member',
-    }, { onConflict: 'household_id,user_id' });
-
-  if (memberError) throw memberError;
-
-  return household as Household;
+  return data as Household;
 };
 
 export const getHouseholdMembers = async (householdId: string): Promise<HouseholdMember[]> => {

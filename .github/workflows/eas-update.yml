@@ -31,8 +31,8 @@ jobs:
 
       - name: 📲 Publicar a Canal Production (main)
         if: github.ref == 'refs/heads/main'
-        run: npx eas-cli@latest update --channel production --environment production --message "${{ github.event.head_commit.message }}"
+        run: npx eas-cli@latest update --channel production --environment production --platform android --message "${{ github.event.head_commit.message }}"
 
       - name: 🧪 Publicar a Canal Preview
         if: github.ref == 'refs/heads/preview'
-        run: npx eas-cli@latest update --channel preview --environment preview --message "${{ github.event.head_commit.message }}"
+        run: npx eas-cli@latest update --channel preview --environment preview --platform android --message "${{ github.event.head_commit.message }}"

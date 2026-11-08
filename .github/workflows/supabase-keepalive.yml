@@ -1,0 +1,22 @@
+name: Supabase Keep-Alive
+
+# El plan gratis de Supabase pausa el proyecto tras 7 días sin actividad.
+# Esta consulta mínima cada 3 días lo mantiene activo.
+on:
+  schedule:
+    - cron: '0 12 */3 * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Ping a Supabase
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🏓 Consulta mínima
+        env:
+          SUPABASE_URL: https://nkkadatiqdfpmbxibywd.supabase.co
+          SUPABASE_ANON_KEY: sb_publishable_-ArAjOTUFanxZMxlIE9Gng_4jkXJHuQ
+        run: |
+          curl -fsS "$SUPABASE_URL/rest/v1/households?select=id&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY"

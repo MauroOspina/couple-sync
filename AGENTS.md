@@ -1,41 +1,38 @@
-This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
+# Couple Sync · guía para agentes
 
-## Expo has changed — do not trust your training data
+App Expo (SDK 57) + Expo Router + Supabase para parejas: despensa, mercado, recetas y tareas del hogar. Objetivo: publicarla y monetizarla en Google Play (Android). Textos de la app en español.
 
-Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:
-
-1. Read the major version of the `expo` package in `package.json`.
-2. Fetch the matching versioned docs: `https://docs.expo.dev/versions/v<major>.0.0/`
-3. For anything else, fetch https://docs.expo.dev/llms.txt — an index of all Expo docs with corrections to common LLM misconceptions. Follow its links to the specific page you need; never answer from memory.
-
-## Commands
-
-Use `bunx` instead of `npx` if the project uses bun (`bun.lock` present).
-
+## Comandos
 ```bash
-npx expo install <package>  # ALWAYS use instead of npm/yarn/pnpm/bun add — resolves SDK-compatible versions
-npx expo start              # start the dev server
-npx expo lint               # lint
-npx tsc --noEmit            # typecheck
-npx expo-doctor             # diagnose dependency and config issues
-npx expo install --fix      # fix incompatible package versions
+npm run check               # lint + tipos + tests: córrelo SIEMPRE antes de terminar
+npx expo start              # servidor de desarrollo (Expo Go SDK 57)
+npx expo install <paquete>  # nunca npm install <paquete>: resuelve versiones compatibles
 ```
+Si agregas o renombras una ruta en `src/app/`, corre `npx expo start` una vez: regenera los tipos de rutas.
 
-Run lint and typecheck before declaring any task done.
+## Mapa del código (`src/`)
+| Carpeta | Qué va ahí |
+|---|---|
+| `app/` | Rutas. `_layout.tsx` decide login / setup / pestañas. `(tabs)/` = Despensa (`index`), `mercado`, `recetas`, `tareas`, `hogar` |
+| `components/ui/` | Kit visual: `AppText`, `Button`, `Card`, `Chip`, `TextField`, `Sheet`, `Icon`... Úsalo siempre |
+| `components/<feature>/` | Piezas de cada pantalla (inventory, recipes, chores) |
+| `domain/` | Lógica pura y tipos, sin React ni Supabase. Con tests en `__tests__/` |
+| `services/` | Supabase y caché local. Un *adapter* por tabla (`products.ts`, `chores.ts`, `recipes.ts`) |
+| `providers/` | Estado global: `useSession`, `useInventory`, `useChores`, `useRecipes` |
+| `hooks/` | `useSyncedCollection` (sync offline + tiempo real), `makeStyles`/`useAppTheme`, `usePremium` |
+| `constants/` | `theme.ts` (colores, fuentes, espacios), `catalog.ts`, `config.ts` (links, Premium) |
 
-## Navigation & Routing
+Base de datos: `supabase/schema.sql` (idempotente). Páginas legales: `docs/` (GitHub Pages).
 
-- Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.
-- Import `Link`, `router`, and `useLocalSearchParams` from `expo-router`.
-- Docs: https://docs.expo.dev/router/introduction.md
+## Reglas
+- **Estilos**: nada de colores sueltos. Usa `makeStyles(theme => ...)` y los tokens de `constants/theme.ts`. La app tiene modo claro y oscuro.
+- **Texto**: `AppText` con `variant`/`tone`, no `<Text>`. Íconos con `<Icon name=...>`; para uno nuevo agrégalo al mapa de `components/ui/icon.tsx`.
+- **Lógica nueva**: función pura en `domain/` + test en `domain/__tests__/`. Las pantallas solo llaman a providers.
+- **Datos nuevos** (tabla nueva): tabla + RLS en `supabase/schema.sql` → adapter en `services/` → provider con `useSyncedCollection` → pantalla. Copia el patrón de `recipes`.
+- **OTA vs build**: cambios solo JS/TS se publican solos por OTA al hacer push. Una librería con código nativo (AdMob, RevenueCat, notificaciones...) exige un build nuevo y subir `version` en `app.json`. **No cambies `version` en otro caso**: las actualizaciones dejarían de llegar.
+- `ios/` y `android/` no existen (CNG): configura en `app.json`.
+- No hagas `git push` ni ejecutes nada contra Supabase: eso lo hace la persona.
 
-## Building with EAS
-
-Use EAS to build, sign, and submit the app in the cloud (`eas build`, `eas submit`) and to ship over-the-air updates (`eas update`) — no local Xcode or Android Studio required. Run EAS CLI as `bunx eas-cli <command>` in Bun projects, or `npx eas-cli@latest <command>` otherwise; substitute that for bare `eas` in docs examples.
-Docs: https://docs.expo.dev/eas/index.md
-
-## Rules
-
-- If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.
-- Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
-- Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
+## Ramas y publicación
+- `git push origin <rama>:preview` → OTA al canal preview (APK de prueba).
+- `git push origin main` → OTA a producción. El workflow corre `npm run check` antes de publicar.

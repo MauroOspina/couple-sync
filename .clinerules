@@ -1,9 +1,9 @@
-# Reglas del proyecto Couple Sync
+# Reglas para Cline (proyecto Couple Sync)
 
-- App Expo SDK 57 + Expo Router + Supabase. Las rutas viven en `src/app/`; componentes en `src/components/`, hooks en `src/hooks/`, constantes en `src/constants/`, servicios en `src/services/`.
-- Responde siempre en español.
-- Al refactorizar: NO cambies comportamiento, textos, colores ni estilos visuales. Solo mueve código.
-- Cuando muevas JSX a un componente, mueve también SOLO los estilos que ese componente usa, a un `StyleSheet.create` dentro del nuevo archivo, y bórralos de donde estaban si ya nadie más los usa.
-- Nunca dejes un archivo a medias: si un archivo es largo, edítalo por partes, pero termina todas las partes.
-- No ejecutes nada contra Supabase ni hagas `git push`.
-- Al terminar cada tarea corre `npx expo lint` y `npx tsc --noEmit`, corrige errores, y luego muestra `git diff --stat`.
+- Responde en español. Antes de tocar código, lee `AGENTS.md` (mapa del proyecto y reglas).
+- Haz SOLO la tarea pedida. No refactorices ni cambies estilos que no te pidieron.
+- Si un archivo es largo, edítalo por partes, pero termina todas las partes. Nunca lo dejes a medias.
+- Usa los componentes de `src/components/ui` y los tokens de `src/constants/theme.ts`. Nada de colores sueltos.
+- Lógica nueva: función en `src/domain/` con su test en `src/domain/__tests__/`.
+- Al terminar: corre `npm run check`, corrige lo que falle y muestra `git diff --stat`.
+- No hagas `git push`, no cambies `version` en app.json y no ejecutes nada contra Supabase.

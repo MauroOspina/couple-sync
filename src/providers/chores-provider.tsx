@@ -1,0 +1,78 @@
+import { createContext, useContext, useMemo, type PropsWithChildren } from 'react';
+
+import { completeChore, isDue, type Chore, type ChoreLog } from '@/domain/chores';
+import { todayISO } from '@/domain/dates';
+import { useSyncedCollection } from '@/hooks/use-synced-collection';
+import { createId } from '@/lib/id';
+import { useSession } from '@/providers/session-provider';
+import { choreLogsAdapter, choresAdapter } from '@/services/chores';
+
+export type ChoreDraft = Pick<Chore, 'title' | 'emoji' | 'assignedTo' | 'frequency' | 'dueDate'>;
+
+interface ChoresContextValue {
+  chores: Chore[];
+  logs: ChoreLog[];
+  ready: boolean;
+  /** Tareas para hoy o atrasadas. */
+  dueCount: number;
+  /** Crea la tarea, o la actualiza si se pasa `id`. */
+  saveChore: (draft: ChoreDraft, id?: string) => void;
+  deleteChore: (id: string) => void;
+  completeChore: (id: string) => void;
+  /** Vuelve a dejar pendiente una tarea de una vez. */
+  reopenChore: (id: string) => void;
+}
+
+const ChoresContext = createContext<ChoresContextValue | null>(null);
+
+export function ChoresProvider({ children }: PropsWithChildren) {
+  const { household, user } = useSession();
+  const householdId = household?.id ?? null;
+  const {
+    items: chores,
+    ready: choresReady,
+    save: saveChoreItem,
+    remove: removeChore,
+  } = useSyncedCollection(choresAdapter, householdId);
+  const { items: logs, ready: logsReady, save: saveLog } = useSyncedCollection(choreLogsAdapter, householdId);
+  const userId = user?.id ?? null;
+
+  const value = useMemo<ChoresContextValue>(() => {
+    const byId = (id: string) => chores.find(chore => chore.id === id);
+    const today = todayISO();
+    return {
+      chores,
+      logs,
+      ready: choresReady && logsReady,
+      dueCount: chores.filter(chore => isDue(chore, today)).length,
+      saveChore: (draft, id) => {
+        const existing = id ? byId(id) : undefined;
+        saveChoreItem(
+          existing
+            ? { ...existing, ...draft }
+            : { id: createId(), ...draft, done: false, lastDoneAt: null, lastDoneBy: null },
+        );
+      },
+      deleteChore: id => removeChore(id),
+      completeChore: id => {
+        const chore = byId(id);
+        if (!chore) return;
+        const now = new Date().toISOString();
+        saveChoreItem(completeChore(chore, userId, todayISO(), now));
+        saveLog({ id: createId(), choreId: chore.id, choreTitle: chore.title, doneBy: userId, doneAt: now });
+      },
+      reopenChore: id => {
+        const chore = byId(id);
+        if (chore) saveChoreItem({ ...chore, done: false });
+      },
+    };
+  }, [chores, logs, choresReady, logsReady, saveChoreItem, removeChore, saveLog, userId]);
+
+  return <ChoresContext.Provider value={value}>{children}</ChoresContext.Provider>;
+}
+
+export function useChores(): ChoresContextValue {
+  const context = useContext(ChoresContext);
+  if (!context) throw new Error('useChores debe usarse dentro de <ChoresProvider>');
+  return context;
+}

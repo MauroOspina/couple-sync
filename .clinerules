@@ -1,0 +1,9 @@
+# Reglas del proyecto Couple Sync
+
+- App Expo SDK 57 + Expo Router + Supabase. Las rutas viven en `src/app/`; componentes en `src/components/`, hooks en `src/hooks/`, constantes en `src/constants/`, servicios en `src/services/`.
+- Responde siempre en español.
+- Al refactorizar: NO cambies comportamiento, textos, colores ni estilos visuales. Solo mueve código.
+- Cuando muevas JSX a un componente, mueve también SOLO los estilos que ese componente usa, a un `StyleSheet.create` dentro del nuevo archivo, y bórralos de donde estaban si ya nadie más los usa.
+- Nunca dejes un archivo a medias: si un archivo es largo, edítalo por partes, pero termina todas las partes.
+- No ejecutes nada contra Supabase ni hagas `git push`.
+- Al terminar cada tarea corre `npx expo lint` y `npx tsc --noEmit`, corrige errores, y luego muestra `git diff --stat`.

@@ -1,6 +1,9 @@
 import type { User } from '@supabase/supabase-js';
+import Constants from 'expo-constants';
+import * as Updates from 'expo-updates';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type PropsWithChildren } from 'react';
 
+import { prepareSuggestion, SUGGESTION_MIN_LENGTH } from '@/domain/suggestions';
 import { clearAppStorage, readJSON, removeKey, storageKey, writeJSON } from '@/lib/storage';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import * as authService from '@/services/auth';
@@ -8,6 +11,7 @@ import { LOCAL_SCOPE } from '@/services/collection';
 import * as householdsService from '@/services/households';
 import type { Household, HouseholdMember } from '@/services/households';
 import { deleteLegacyProducts } from '@/services/products';
+import * as suggestionsService from '@/services/suggestions';
 
 /** loading → splash · signedOut → login · needsHousehold → crear/unirse · ready → pestañas */
 export type SessionStatus = 'loading' | 'signedOut' | 'needsHousehold' | 'ready';
@@ -31,7 +35,20 @@ interface SessionContextValue {
   joinHousehold: (code: string) => Promise<Household>;
   leaveHousehold: () => Promise<void>;
   deleteAccount: () => Promise<void>;
+  /** Envía al buzón de sugerencias. Funciona con o sin cuenta; lanza error si el texto es muy corto. */
+  sendSuggestion: (message: string) => Promise<void>;
   retryHousehold: () => void;
+}
+
+/** "1.0.0 · production · 1a2b3c4d": para saber desde qué versión llegó cada sugerencia. */
+function appVersionLabel(): string {
+  return [Constants.expoConfig?.version ?? '?', Updates.channel, Updates.updateId?.slice(0, 8)].filter(Boolean).join(' · ');
+}
+
+async function sendSuggestion(message: string): Promise<void> {
+  const text = prepareSuggestion(message);
+  if (!text) throw new Error(`Escribe al menos ${SUGGESTION_MIN_LENGTH} caracteres.`);
+  await suggestionsService.sendSuggestion(text, appVersionLabel());
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -243,6 +260,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
       joinHousehold,
       leaveHousehold,
       deleteAccount,
+      sendSuggestion,
       retryHousehold: () => setHouseholdAttempt(attempt => attempt + 1),
     }),
     [

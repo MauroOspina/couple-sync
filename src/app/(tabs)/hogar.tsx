@@ -4,6 +4,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
 import { Alert, ScrollView, Share, View } from 'react-native';
 
+import { SuggestionSheet } from '@/components/household/suggestion-sheet';
 import { AppText, Avatar, Button, Card, Icon, Screen, ScreenHeader, SectionTitle } from '@/components/ui';
 import { APP_CONFIG } from '@/constants/config';
 import { radius, spacing } from '@/constants/theme';
@@ -17,6 +18,7 @@ export default function HouseholdScreen() {
   const { colors } = useAppTheme();
   const { user, isGuest, household, members, signOut, exitGuestMode, leaveHousehold, deleteAccount } = useSession();
   const [deleting, setDeleting] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
 
   const shareCode = () => {
     if (!household) return;
@@ -148,6 +150,9 @@ export default function HouseholdScreen() {
 
         <SectionTitle title="Acerca de" />
         <Card style={styles.accountCard}>
+          {isSupabaseConfigured ? (
+            <Button label="Enviar sugerencia" icon="lightbulb" variant="ghost" onPress={() => setSuggesting(true)} />
+          ) : null}
           <Button
             label="Política de privacidad"
             icon="privacy"
@@ -161,6 +166,7 @@ export default function HouseholdScreen() {
           </AppText>
         </Card>
       </ScrollView>
+      <SuggestionSheet visible={suggesting} onClose={() => setSuggesting(false)} />
     </Screen>
   );
 }

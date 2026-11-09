@@ -82,6 +82,15 @@ create table if not exists public.recipes (
 );
 create index if not exists recipes_household_idx on public.recipes (household_id);
 
+-- Buzón de sugerencias. La app solo puede escribir; se leen en el panel (Table Editor → suggestions).
+create table if not exists public.suggestions (
+  id uuid primary key default gen_random_uuid(),
+  message text not null check (char_length(message) between 5 and 2000),
+  app_version text check (char_length(app_version) <= 60),
+  user_id uuid default auth.uid() references auth.users(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
 -- ---------------------------------------------------------------------
 -- 2. Tiempo real
 -- ---------------------------------------------------------------------
@@ -109,6 +118,7 @@ alter table public.products enable row level security;
 alter table public.chores enable row level security;
 alter table public.chore_logs enable row level security;
 alter table public.recipes enable row level security;
+alter table public.suggestions enable row level security;
 
 -- Borra cualquier política que no sea de este archivo (p. ej. creadas a mano en el panel).
 do $$
@@ -117,11 +127,11 @@ begin
   for p in
     select policyname, tablename from pg_policies
     where schemaname = 'public'
-      and tablename in ('households', 'household_members', 'products', 'chores', 'chore_logs', 'recipes')
+      and tablename in ('households', 'household_members', 'products', 'chores', 'chore_logs', 'recipes', 'suggestions')
       and policyname not in (
         'households_select', 'households_insert', 'households_update', 'households_delete',
         'members_select', 'members_insert_owner', 'members_delete_self',
-        'products_all', 'chores_all', 'chore_logs_all', 'recipes_all'
+        'products_all', 'chores_all', 'chore_logs_all', 'recipes_all', 'suggestions_insert'
       )
   loop
     execute format('drop policy %I on public.%I', p.policyname, p.tablename);
@@ -179,6 +189,12 @@ drop policy if exists "recipes_all" on public.recipes;
 create policy "recipes_all" on public.recipes for all to authenticated
   using (public.is_household_member(household_id))
   with check (public.is_household_member(household_id));
+
+-- Cualquiera puede enviar (también sin cuenta) y nadie puede leer desde la app.
+-- user_id debe ser el propio o vacío: nadie puede firmar a nombre de otra persona.
+drop policy if exists "suggestions_insert" on public.suggestions;
+create policy "suggestions_insert" on public.suggestions for insert to anon, authenticated
+  with check (user_id is not distinct from auth.uid());
 
 -- ---------------------------------------------------------------------
 -- 4. Funciones que llama la app

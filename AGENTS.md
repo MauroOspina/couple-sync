@@ -7,7 +7,9 @@ App Expo (SDK 57) + Expo Router + Supabase para parejas: despensa, mercado, rece
 npm run check               # lint + tipos + tests: córrelo SIEMPRE antes de terminar
 npx expo start              # servidor de desarrollo (Expo Go SDK 57)
 npx expo install <paquete>  # nunca npm install <paquete>: resuelve versiones compatibles
+npm run sugerencias         # (lo corre la persona) baja el buzón nuevo a feedback/sugerencias.md
 ```
+Para trabajar sugerencias: lee `feedback/sugerencias.md` (no corras el script tú). Ese archivo no se sube a git.
 Si agregas o renombras una ruta en `src/app/`, corre `npx expo start` una vez: regenera los tipos de rutas.
 
 ## Mapa del código (`src/`)

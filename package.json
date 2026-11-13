@@ -50,7 +50,8 @@
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "check": "expo lint && tsc --noEmit && jest",
-    "eas-build-pre-install": "npm install --package-lock-only"
+    "eas-build-pre-install": "npm install --package-lock-only",
+    "sugerencias": "node scripts/sugerencias.mjs"
   },
   "private": true
 }

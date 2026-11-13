@@ -6,3 +6,7 @@
 scripts/
 .git/
 node_modules/
+
+# Llaves locales y sugerencias: nunca deben subirse a los builds de EAS
+.env*.local
+feedback/

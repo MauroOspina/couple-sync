@@ -42,3 +42,6 @@ example
 # generated native folders
 /ios
 /android
+
+# Sugerencias descargadas (scripts/sugerencias.mjs): datos de usuarios, no se suben
+feedback/

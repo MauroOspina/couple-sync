@@ -32,10 +32,16 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
+      # El mensaje del commit va por variable de entorno (no dentro del comando): así sus comillas
+      # o saltos de línea no rompen el shell ni pueden inyectar comandos. Se usa solo la primera línea.
       - name: 📲 Publicar a Canal Production (main)
         if: github.ref == 'refs/heads/main'
-        run: npx eas-cli@latest update --channel production --environment production --platform android --message "${{ github.event.head_commit.message }}"
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: npx eas-cli@latest update --channel production --environment production --platform android --message "$(printf '%s' "$COMMIT_MESSAGE" | head -n 1)"
 
       - name: 🧪 Publicar a Canal Preview
         if: github.ref == 'refs/heads/preview'
-        run: npx eas-cli@latest update --channel preview --environment preview --platform android --message "${{ github.event.head_commit.message }}"
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: npx eas-cli@latest update --channel preview --environment preview --platform android --message "$(printf '%s' "$COMMIT_MESSAGE" | head -n 1)"

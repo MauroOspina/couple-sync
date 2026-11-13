@@ -1,4 +1,4 @@
-# Couple Sync 💑
+# Nest 🏡
 
 La despensa, el mercado, las recetas y las tareas del hogar, en sintonía con tu pareja.
 App Android hecha con Expo (SDK 57), Expo Router y Supabase.

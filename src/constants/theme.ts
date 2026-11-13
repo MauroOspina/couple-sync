@@ -1,5 +1,5 @@
 /**
- * Sistema de diseño de Couple Sync.
+ * Sistema de diseño de Nest.
  * Todos los colores, tamaños y tipografías salen de aquí: no escribas colores sueltos en los componentes.
  * Para estilos que dependen del tema usa `makeStyles` de `@/hooks/use-app-theme`.
  */

@@ -1,4 +1,4 @@
-# Roadmap · Couple Sync hacia Google Play
+# Roadmap · Nest hacia Google Play
 
 Cada tarea de Cline va en una **conversación nueva** (botón +). Al terminar, revisa el diff y haz commit tú.
 

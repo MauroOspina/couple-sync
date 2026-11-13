@@ -1,6 +1,6 @@
-# Couple Sync · guía para agentes
+# Nest · guía para agentes
 
-App Expo (SDK 57) + Expo Router + Supabase para parejas: despensa, mercado, recetas y tareas del hogar. Objetivo: publicarla y monetizarla en Google Play (Android). Textos de la app en español.
+App Expo (SDK 57) + Expo Router + Supabase para organizar el hogar (pareja, familia o roomies): despensa, mercado, recetas y tareas. Objetivo: publicarla y monetizarla en Google Play (Android). Textos de la app en español.
 
 ## Comandos
 ```bash
@@ -33,6 +33,8 @@ Base de datos: `supabase/schema.sql` (idempotente). Páginas legales: `docs/` (G
 - **Datos nuevos** (tabla nueva): tabla + RLS en `supabase/schema.sql` → adapter en `services/` → provider con `useSyncedCollection` → pantalla. Copia el patrón de `recipes`.
 - **OTA vs build**: cambios solo JS/TS se publican solos por OTA al hacer push. Una librería con código nativo (AdMob, RevenueCat, notificaciones...) exige un build nuevo y subir `version` en `app.json`. **No cambies `version` en otro caso**: las actualizaciones dejarían de llegar.
 - `ios/` y `android/` no existen (CNG): configura en `app.json`.
+- La app se llama **Nest**, pero `scheme: couplesync` (login de Google), `package: com.couplesync.app` (Play) y `slug: couple-app` (EAS) conservan el nombre viejo a propósito: no los cambies.
+- Ícono y splash: ver `assets/brand/README.md`.
 - No hagas `git push` ni ejecutes nada contra Supabase: eso lo hace la persona.
 
 ## Ramas y publicación

@@ -3,7 +3,7 @@
  * Cambiar un valor aquí se publica por OTA (no requiere build nuevo).
  */
 export const APP_CONFIG = {
-  name: 'Couple Sync',
+  name: 'Nest',
   /** Páginas públicas (GitHub Pages, carpeta `docs/`). */
   links: {
     privacy: 'https://mauroospina.github.io/couple-sync/privacy.html',

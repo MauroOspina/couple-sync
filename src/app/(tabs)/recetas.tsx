@@ -6,6 +6,7 @@ import { RecipeDetailSheet } from '@/components/recipes/recipe-detail-sheet';
 import { RecipeEditorSheet } from '@/components/recipes/recipe-editor-sheet';
 import { RecipeIdeasSheet } from '@/components/recipes/recipe-ideas-sheet';
 import { Button, EmptyState, IconButton, LoadingView, Screen, ScreenHeader } from '@/components/ui';
+import { APP_CONFIG } from '@/constants/config';
 import { spacing } from '@/constants/theme';
 import type { RecipeContent } from '@/domain/recipe-import';
 import { checkIngredients, summarizeAvailability, type Recipe } from '@/domain/recipes';
@@ -40,7 +41,7 @@ export default function RecipesScreen() {
 
   const openNew = (initial?: RecipeContent) => {
     if (!canAddRecipe) {
-      Alert.alert('Límite del plan gratuito', 'Muy pronto podrás guardar recetas ilimitadas con Couple Sync Premium.');
+      Alert.alert('Límite del plan gratuito', `Muy pronto podrás guardar recetas ilimitadas con ${APP_CONFIG.name} Premium.`);
       return;
     }
     setIdeasOpen(false);

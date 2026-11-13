@@ -54,7 +54,7 @@ export default function HouseholdScreen() {
             try {
               setDeleting(true);
               await deleteAccount();
-              Alert.alert('Cuenta eliminada', 'Tus datos se borraron. Gracias por usar Couple Sync.');
+              Alert.alert('Cuenta eliminada', `Tus datos se borraron. Gracias por usar ${APP_CONFIG.name}.`);
             } catch (error) {
               Alert.alert('No se pudo eliminar la cuenta', error instanceof Error ? error.message : 'Inténtalo de nuevo.');
             } finally {

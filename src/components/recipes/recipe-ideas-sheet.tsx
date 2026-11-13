@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Alert, Linking, Share, View } from 'react-native';
 
 import { AppText, Banner, Button, Sheet, TextField } from '@/components/ui';
+import { APP_CONFIG } from '@/constants/config';
 import { spacing } from '@/constants/theme';
 import { parseRecipeText, type RecipeContent } from '@/domain/recipe-import';
 import { buildRecipePrompt, MAX_CRAVING_LENGTH, pantryForIdeas } from '@/domain/recipes';
@@ -75,7 +76,7 @@ function IdeasContent({ onImport }: Pick<RecipeIdeasSheetProps, 'onImport'>) {
     <>
       <AppText variant="small" tone="muted">
         Armamos una pregunta con la comida de tu despensa ({pantry.length} {pantry.length === 1 ? 'alimento' : 'alimentos'}, sin
-        aseo ni farmacia) y la abres en tu propia IA: el Modo IA de Google, la app de Gemini o la que prefieras. Couple Sync no envía tus
+        aseo ni farmacia) y la abres en tu propia IA: el Modo IA de Google, la app de Gemini o la que prefieras. {APP_CONFIG.name} no envía tus
         datos a ninguna IA.
       </AppText>
 

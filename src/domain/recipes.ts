@@ -105,7 +105,10 @@ export function buildRecipePrompt(ingredients: string[], craving: string, maxLen
     ? `Tengo antojo de: ${wish}. Propón 3 recetas caseras y fáciles que cumplan ese antojo, ` +
       'aprovechando lo que tengo en la cocina cuando sirva (no hace falta usarlo todo).'
     : 'Propón 3 recetas caseras y fáciles aprovechando lo que tengo en la cocina (no hace falta usarlo todo).';
-  const outro = ' Para cada una dame nombre, tiempo, porciones, ingredientes con cantidades y pasos cortos. Responde en español.';
+  // Formato fijo para que la app pueda leer la receta pegada (ver domain/recipe-import.ts).
+  const outro =
+    ' Responde en español y usa este formato en cada receta: una línea "### Nombre", luego "Tiempo: X min",' +
+    ' "Porciones: N", "Ingredientes:" con viñetas y cantidades, y "Pasos:" con pasos cortos numerados.';
   const budget = maxLength - intro.length - outro.length - ' Tengo: . y más'.length;
 
   const included: string[] = [];

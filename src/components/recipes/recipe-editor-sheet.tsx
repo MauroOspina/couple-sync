@@ -3,6 +3,7 @@ import { Alert, View } from 'react-native';
 
 import { AppText, Button, EmojiPicker, Sheet, TextField } from '@/components/ui';
 import { spacing } from '@/constants/theme';
+import type { RecipeContent } from '@/domain/recipe-import';
 import { parseIngredientLines, parsePositiveInt, RECIPE_EMOJIS, type Recipe } from '@/domain/recipes';
 import { makeStyles } from '@/hooks/use-app-theme';
 import { useRecipes } from '@/providers/recipes-provider';
@@ -11,27 +12,41 @@ interface RecipeEditorSheetProps {
   visible: boolean;
   /** `null` = receta nueva. */
   recipe: Recipe | null;
+  /** Para una receta nueva: datos con que llenar el formulario (p. ej. una receta pegada de la IA). */
+  initial?: RecipeContent | null;
   onClose: () => void;
   onSaved?: (recipe: Recipe) => void;
 }
 
-export function RecipeEditorSheet({ visible, recipe, onClose, onSaved }: RecipeEditorSheetProps) {
+export function RecipeEditorSheet({ visible, recipe, initial, onClose, onSaved }: RecipeEditorSheetProps) {
   return (
-    <Sheet visible={visible} onClose={onClose} title={recipe ? 'Editar receta' : 'Nueva receta'}>
-      {visible ? <RecipeForm key={recipe?.id ?? 'new'} recipe={recipe} onClose={onClose} onSaved={onSaved} /> : null}
+    <Sheet visible={visible} onClose={onClose} title={recipe ? 'Editar receta' : initial ? 'Revisa la receta' : 'Nueva receta'}>
+      {visible ? (
+        <RecipeForm
+          key={recipe?.id ?? initial?.title ?? 'new'}
+          recipe={recipe}
+          initial={initial}
+          onClose={onClose}
+          onSaved={onSaved}
+        />
+      ) : null}
     </Sheet>
   );
 }
 
-function RecipeForm({ recipe, onClose, onSaved }: Omit<RecipeEditorSheetProps, 'visible'>) {
+function RecipeForm({ recipe, initial, onClose, onSaved }: Omit<RecipeEditorSheetProps, 'visible'>) {
   const styles = useStyles();
   const { saveRecipe } = useRecipes();
-  const [emoji, setEmoji] = useState(recipe?.emoji ?? RECIPE_EMOJIS[0]);
-  const [title, setTitle] = useState(recipe?.title ?? '');
-  const [servings, setServings] = useState(recipe?.servings ? String(recipe.servings) : '');
-  const [minutes, setMinutes] = useState(recipe?.prepMinutes ? String(recipe.prepMinutes) : '');
-  const [ingredients, setIngredients] = useState(recipe?.ingredients.join('\n') ?? '');
-  const [steps, setSteps] = useState(recipe?.steps ?? '');
+  const source = recipe ?? initial ?? null;
+  const [emoji, setEmoji] = useState(source?.emoji ?? RECIPE_EMOJIS[0]);
+  const [title, setTitle] = useState(source?.title ?? '');
+  const [servings, setServings] = useState(source?.servings ? String(source.servings) : '');
+  const [minutes, setMinutes] = useState(source?.prepMinutes ? String(source.prepMinutes) : '');
+  const [ingredients, setIngredients] = useState(source?.ingredients.join('\n') ?? '');
+  const [steps, setSteps] = useState(source?.steps ?? '');
+  // Un emoji que trajo la IA y no está en la lista se ofrece primero para no perderlo.
+  const emojiOptions =
+    source?.emoji && !RECIPE_EMOJIS.includes(source.emoji) ? [source.emoji, ...RECIPE_EMOJIS] : RECIPE_EMOJIS;
 
   const save = () => {
     const cleanTitle = title.trim();
@@ -65,7 +80,7 @@ function RecipeForm({ recipe, onClose, onSaved }: Omit<RecipeEditorSheetProps, '
         <AppText variant="label" tone="muted">
           Ícono
         </AppText>
-        <EmojiPicker options={RECIPE_EMOJIS} value={emoji} onChange={setEmoji} />
+        <EmojiPicker options={emojiOptions} value={emoji} onChange={setEmoji} />
       </View>
       <TextField label="Nombre" value={title} onChangeText={setTitle} placeholder="Ej: Arroz con pollo" autoCapitalize="sentences" />
       <View style={styles.row}>

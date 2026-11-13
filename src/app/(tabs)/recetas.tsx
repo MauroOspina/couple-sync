@@ -7,6 +7,7 @@ import { RecipeEditorSheet } from '@/components/recipes/recipe-editor-sheet';
 import { RecipeIdeasSheet } from '@/components/recipes/recipe-ideas-sheet';
 import { Button, EmptyState, IconButton, LoadingView, Screen, ScreenHeader } from '@/components/ui';
 import { spacing } from '@/constants/theme';
+import type { RecipeContent } from '@/domain/recipe-import';
 import { checkIngredients, summarizeAvailability, type Recipe } from '@/domain/recipes';
 import { makeStyles } from '@/hooks/use-app-theme';
 import { useInventory } from '@/providers/inventory-provider';
@@ -18,7 +19,7 @@ export default function RecipesScreen() {
   const { recipes, ready, canAddRecipe, addSampleRecipes } = useRecipes();
   const { products } = useInventory();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [editor, setEditor] = useState<{ recipe: Recipe | null } | null>(null);
+  const [editor, setEditor] = useState<{ recipe: Recipe | null; initial?: RecipeContent } | null>(null);
   const [ideasOpen, setIdeasOpen] = useState(false);
 
   const entries = useMemo(
@@ -37,12 +38,13 @@ export default function RecipesScreen() {
 
   const selected = recipes.find(recipe => recipe.id === selectedId) ?? null;
 
-  const openNew = () => {
+  const openNew = (initial?: RecipeContent) => {
     if (!canAddRecipe) {
       Alert.alert('Límite del plan gratuito', 'Muy pronto podrás guardar recetas ilimitadas con Couple Sync Premium.');
       return;
     }
-    setEditor({ recipe: null });
+    setIdeasOpen(false);
+    setEditor({ recipe: null, initial });
   };
 
   return (
@@ -53,7 +55,7 @@ export default function RecipesScreen() {
         right={
           <View style={styles.headerActions}>
             <IconButton icon="sparkles" accessibilityLabel="Ideas de recetas con IA" onPress={() => setIdeasOpen(true)} />
-            <IconButton icon="add" variant="primary" accessibilityLabel="Nueva receta" onPress={openNew} />
+            <IconButton icon="add" variant="primary" accessibilityLabel="Nueva receta" onPress={() => openNew()} />
           </View>
         }
       />
@@ -71,7 +73,7 @@ export default function RecipesScreen() {
             emoji="🍳"
             title="Aún no hay recetas"
             message="Guarden sus recetas favoritas y la app les dirá qué ingredientes tienen y cuáles faltan.">
-            <Button label="Crear receta" icon="add" onPress={openNew} />
+            <Button label="Crear receta" icon="add" onPress={() => openNew()} />
             <Button label="Ideas con IA según mi despensa" icon="sparkles" variant="secondary" onPress={() => setIdeasOpen(true)} />
             <Button label="Ver 3 recetas de ejemplo" icon="sparkles" variant="secondary" onPress={addSampleRecipes} />
           </EmptyState>
@@ -86,8 +88,15 @@ export default function RecipesScreen() {
           setEditor({ recipe });
         }}
       />
-      <RecipeEditorSheet visible={editor !== null} recipe={editor?.recipe ?? null} onClose={() => setEditor(null)} />
-      <RecipeIdeasSheet visible={ideasOpen} onClose={() => setIdeasOpen(false)} />
+      <RecipeEditorSheet
+        visible={editor !== null}
+        recipe={editor?.recipe ?? null}
+        initial={editor?.initial}
+        onClose={() => setEditor(null)}
+        // Una receta traída de la IA se muestra al guardarla, con lo que falta de la despensa.
+        onSaved={saved => (editor?.initial ? setSelectedId(saved.id) : undefined)}
+      />
+      <RecipeIdeasSheet visible={ideasOpen} onClose={() => setIdeasOpen(false)} onImport={openNew} />
     </Screen>
   );
 }

@@ -8,4 +8,5 @@ export { Icon, type IconName } from './icon';
 export { IconButton } from './icon-button';
 export { LoadingView, Screen, ScreenHeader } from './screen';
 export { Sheet } from './sheet';
+export { Snackbar } from './snackbar';
 export { TextField } from './text-field';

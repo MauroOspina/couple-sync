@@ -1,10 +1,8 @@
-import { toChoreFrequency, type Chore, type ChoreLog } from '@/domain/chores';
+import { CHORE_LOG_WINDOW_DAYS, toChoreFrequency, type Chore, type ChoreLog } from '@/domain/chores';
 import { asyncStorageCache, type CollectionAdapter } from '@/services/collection';
-import { asNullableString, asString } from '@/services/rows';
+import { asNullableNumber, asNullableString, asNumberArray, asString } from '@/services/rows';
 
-const LOG_WINDOW_DAYS = 90;
-
-const logsSince = () => new Date(Date.now() - LOG_WINDOW_DAYS * 86_400_000).toISOString();
+const logsSince = () => new Date(Date.now() - CHORE_LOG_WINDOW_DAYS * 86_400_000).toISOString();
 
 export const choresAdapter: CollectionAdapter<Chore> = {
   table: 'chores',
@@ -14,6 +12,8 @@ export const choresAdapter: CollectionAdapter<Chore> = {
     emoji: asString(row.emoji, '🧹') || '🧹',
     assignedTo: asNullableString(row.assigned_to),
     frequency: toChoreFrequency(row.frequency),
+    repeatEvery: asNullableNumber(row.repeat_every) ?? 1,
+    weekdays: asNumberArray(row.repeat_weekdays),
     dueDate: asNullableString(row.due_date),
     done: Boolean(row.done),
     lastDoneAt: asNullableString(row.last_done_at),
@@ -27,6 +27,8 @@ export const choresAdapter: CollectionAdapter<Chore> = {
     emoji: chore.emoji,
     assigned_to: chore.assignedTo,
     frequency: chore.frequency,
+    repeat_every: chore.repeatEvery ?? 1,
+    repeat_weekdays: chore.weekdays ?? [],
     due_date: chore.dueDate,
     done: chore.done,
     last_done_at: chore.lastDoneAt,

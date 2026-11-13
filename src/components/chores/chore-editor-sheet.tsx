@@ -2,9 +2,23 @@ import { useState } from 'react';
 import { Alert, View } from 'react-native';
 
 import { AppText, Button, Chip, EmojiPicker, IconButton, Sheet, TextField } from '@/components/ui';
-import { spacing } from '@/constants/theme';
-import { CHORE_EMOJIS, FREQUENCY_LABELS, type Chore, type ChoreFrequency } from '@/domain/chores';
-import { addDays, formatDueLabel, todayISO, type ISODate } from '@/domain/dates';
+import { radius, spacing } from '@/constants/theme';
+import {
+  CHORE_EMOJIS,
+  firstRepeatDate,
+  MAX_REPEAT_EVERY,
+  repeatFieldsOf,
+  repeatLabel,
+  repeatRuleOf,
+  sameRepeatRule,
+  unitName,
+  WEEKDAY_ORDER,
+  WEEKDAY_SHORT,
+  type Chore,
+  type RepeatRule,
+  type RepeatUnit,
+} from '@/domain/chores';
+import { addDays, formatDueLabel, parseISODate, todayISO, type ISODate } from '@/domain/dates';
 import { makeStyles } from '@/hooks/use-app-theme';
 import { useChores } from '@/providers/chores-provider';
 import { useSession } from '@/providers/session-provider';
@@ -24,7 +38,15 @@ export function ChoreEditorSheet({ visible, chore, onClose }: ChoreEditorSheetPr
   );
 }
 
-const FREQUENCIES: ChoreFrequency[] = ['once', 'daily', 'weekly', 'monthly'];
+const PRESETS: { label: string; rule: RepeatRule | null }[] = [
+  { label: 'Una vez', rule: null },
+  { label: 'Cada día', rule: { unit: 'day', every: 1, weekdays: [] } },
+  { label: 'Cada semana', rule: { unit: 'week', every: 1, weekdays: [] } },
+  { label: 'Cada mes', rule: { unit: 'month', every: 1, weekdays: [] } },
+];
+const UNITS: RepeatUnit[] = ['day', 'week', 'month', 'year'];
+/** Iniciales de los días (0 = domingo); miércoles es "X" para no repetir la "M". */
+const WEEKDAY_LETTERS = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
 
 function ChoreForm({ chore, onClose }: { chore: Chore | null; onClose: () => void }) {
   const styles = useStyles();
@@ -34,7 +56,9 @@ function ChoreForm({ chore, onClose }: { chore: Chore | null; onClose: () => voi
 
   const [title, setTitle] = useState(chore?.title ?? '');
   const [emoji, setEmoji] = useState(chore?.emoji ?? CHORE_EMOJIS[0]);
-  const [frequency, setFrequency] = useState<ChoreFrequency>(chore?.frequency ?? 'once');
+  const initialRule = chore ? repeatRuleOf(chore) : null;
+  const [rule, setRule] = useState<RepeatRule | null>(initialRule);
+  const [custom, setCustom] = useState(initialRule !== null && !PRESETS.some(preset => sameRepeatRule(preset.rule, initialRule)));
   const [assignedTo, setAssignedTo] = useState<string | null>(chore?.assignedTo ?? null);
   const [dueDate, setDueDate] = useState<ISODate | null>(chore ? chore.dueDate : today);
 
@@ -51,10 +75,22 @@ function ChoreForm({ chore, onClose }: { chore: Chore | null; onClose: () => voi
       Alert.alert('Falta el nombre', 'Escribe qué hay que hacer.');
       return;
     }
-    // Las tareas que se repiten necesitan una fecha de inicio.
-    const due = frequency !== 'once' && !dueDate ? today : dueDate;
-    saveChore({ title: clean, emoji, frequency, assignedTo, dueDate: due }, chore?.id);
+    // Las tareas que se repiten necesitan una fecha de inicio, y debe caer en uno de los días elegidos.
+    const start = rule && !dueDate ? today : dueDate;
+    const due = start ? firstRepeatDate(start, rule) : null;
+    saveChore({ title: clean, emoji, assignedTo, ...repeatFieldsOf(rule), dueDate: due }, chore?.id);
     onClose();
+  };
+
+  const choosePreset = (preset: RepeatRule | null) => {
+    setCustom(false);
+    setRule(preset);
+  };
+
+  const chooseCustom = () => {
+    setCustom(true);
+    // Por defecto: cada semana, el mismo día de la fecha elegida.
+    setRule(current => current ?? { unit: 'week', every: 1, weekdays: [parseISODate(dueDate ?? today).getDay()] });
   };
 
   const confirmDelete = () => {
@@ -108,15 +144,22 @@ function ChoreForm({ chore, onClose }: { chore: Chore | null; onClose: () => voi
           Se repite
         </AppText>
         <View style={styles.chips}>
-          {FREQUENCIES.map(option => (
-            <Chip key={option} label={FREQUENCY_LABELS[option]} selected={frequency === option} onPress={() => setFrequency(option)} />
+          {PRESETS.map(preset => (
+            <Chip
+              key={preset.label}
+              label={preset.label}
+              selected={!custom && sameRepeatRule(rule, preset.rule)}
+              onPress={() => choosePreset(preset.rule)}
+            />
           ))}
+          <Chip label="Personalizada" icon="repeat" selected={custom} onPress={chooseCustom} />
         </View>
+        {custom && rule ? <CustomRepeat rule={rule} onChange={setRule} /> : null}
       </View>
 
       <View style={styles.group}>
         <AppText variant="label" tone="muted">
-          {frequency === 'once' ? 'Para cuándo' : 'Próxima vez'}
+          {rule ? 'Próxima vez' : 'Para cuándo'}
         </AppText>
         <View style={styles.chips}>
           {quickDates.map(option => (
@@ -147,10 +190,90 @@ function ChoreForm({ chore, onClose }: { chore: Chore | null; onClose: () => voi
   );
 }
 
-const useStyles = makeStyles(() => ({
+/** "Cada [N] [días/semanas/meses/años]" y, si es semanal, en qué días. */
+function CustomRepeat({ rule, onChange }: { rule: RepeatRule; onChange: (rule: RepeatRule) => void }) {
+  const styles = useStyles();
+  const max = MAX_REPEAT_EVERY[rule.unit];
+
+  const toggleWeekday = (day: number) =>
+    onChange({
+      ...rule,
+      weekdays: rule.weekdays.includes(day) ? rule.weekdays.filter(item => item !== day) : [...rule.weekdays, day],
+    });
+
+  return (
+    <View style={styles.custom}>
+      <View style={styles.everyRow}>
+        <AppText variant="bodyStrong">Cada</AppText>
+        <IconButton
+          icon="remove"
+          size={36}
+          accessibilityLabel="Menos"
+          disabled={rule.every <= 1}
+          onPress={() => onChange({ ...rule, every: rule.every - 1 })}
+        />
+        <AppText variant="heading" style={styles.everyValue} accessibilityLabel={`Cada ${rule.every}`}>
+          {rule.every}
+        </AppText>
+        <IconButton
+          icon="add"
+          size={36}
+          accessibilityLabel="Más"
+          disabled={rule.every >= max}
+          onPress={() => onChange({ ...rule, every: rule.every + 1 })}
+        />
+      </View>
+
+      <View style={styles.chips}>
+        {UNITS.map(unit => (
+          <Chip
+            key={unit}
+            label={unitName(unit, rule.every)}
+            selected={rule.unit === unit}
+            onPress={() =>
+              onChange({ unit, every: Math.min(rule.every, MAX_REPEAT_EVERY[unit]), weekdays: unit === 'week' ? rule.weekdays : [] })
+            }
+          />
+        ))}
+      </View>
+
+      {rule.unit === 'week' ? (
+        <View style={styles.chips}>
+          {WEEKDAY_ORDER.map(day => (
+            <Chip
+              key={day}
+              label={WEEKDAY_LETTERS[day]}
+              accessibilityLabel={WEEKDAY_SHORT[day]}
+              selected={rule.weekdays.includes(day)}
+              onPress={() => toggleWeekday(day)}
+              style={styles.dayChip}
+            />
+          ))}
+        </View>
+      ) : null}
+
+      <AppText variant="small" tone="muted">
+        {repeatLabel(rule)}
+        {rule.unit === 'week' && rule.weekdays.length === 0 ? ' (el mismo día de la fecha)' : ''}
+      </AppText>
+    </View>
+  );
+}
+
+const useStyles = makeStyles(theme => ({
   group: { gap: spacing.sm },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.xs },
   stepperLabel: { flex: 1, textAlign: 'center' },
   actions: { gap: spacing.sm },
+  custom: {
+    gap: spacing.md,
+    marginTop: spacing.xs,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: theme.colors.surfaceAlt,
+  },
+  everyRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  everyValue: { minWidth: 32, textAlign: 'center' },
+  dayChip: { minWidth: 40, justifyContent: 'center' },
 }));

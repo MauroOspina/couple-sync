@@ -30,6 +30,16 @@ Cada tarea de Cline va en una **conversación nueva** (botón +). Al terminar, r
 **Categoría al agregar desde el mercado**
 > En `src/app/(tabs)/mercado.tsx`, después de agregar un producto con la barra de abajo, si su categoría quedó en "Otros" abre `ProductEditSheet` con ese producto para que la persona elija la categoría.
 
+## Sugerencias de usuarios · nov 2026 (hecho en código, falta un paso tuyo)
+Historial de tareas, deshacer, quién la hizo, periodicidad libre e ideas de recetas con IA.
+
+**Orden obligatorio antes de publicar** (si la app sale antes que el SQL, las tareas dejan de sincronizar):
+1. **SQL**: Supabase → SQL Editor → pega todo `supabase/schema.sql` → Run (agrega `repeat_every` y `repeat_weekdays` a `chores`).
+2. **Probar** en preview (`git push origin main:preview`) y luego `git push origin main`.
+
+Las ideas con IA no usan servidor ni llaves: arman una pregunta con la despensa y la abren en el Modo IA de Google
+(`google.com/search?udm=50&q=...`, URL no documentada) o en el menú de compartir (Gemini, ChatGPT...), con la cuenta de cada persona.
+
 ## Fase 4 · Monetización (cuando haya usuarios)
 1. **Premium con RevenueCat** (gratis hasta cierto nivel de ingresos). Requiere build nuevo.
    - `npx expo install react-native-purchases` y su config plugin; producto de suscripción en Play Console.

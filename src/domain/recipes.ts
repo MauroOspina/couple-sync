@@ -76,6 +76,47 @@ export function parsePositiveInt(value: string, max: number): number | null {
   return Math.min(parsed, max);
 }
 
+/** Productos que hay o de los que queda poco, sin repetidos: lo que se le cuenta a la IA. */
+export function pantryForIdeas(products: Pick<Product, 'name' | 'status'>[]): string[] {
+  const seen = new Set<string>();
+  const names: string[] = [];
+  for (const product of products) {
+    const name = product.name.trim();
+    const key = normalizeText(name);
+    if (product.status === 'out' || !name || seen.has(key)) continue;
+    seen.add(key);
+    names.push(name);
+  }
+  return names;
+}
+
+export const MAX_CRAVING_LENGTH = 200;
+
+/**
+ * Pregunta lista para pegar en Gemini, el Modo IA de Google u otra IA.
+ * Se corta la lista de ingredientes para no pasar de `maxLength` (los links muy largos fallan).
+ */
+export function buildRecipePrompt(ingredients: string[], craving: string, maxLength = 1200): string {
+  const wish = craving.trim().slice(0, MAX_CRAVING_LENGTH);
+  const intro =
+    'Propón 3 recetas caseras y fáciles usando sobre todo lo que tengo en la despensa. ' +
+    'Para cada una dame nombre, tiempo, porciones, ingredientes con cantidades y pasos cortos. Responde en español.';
+  const wishLine = wish ? ` Antojo: ${wish}.` : '';
+  const budget = maxLength - intro.length - wishLine.length - ' Tengo: . y más'.length;
+
+  const included: string[] = [];
+  let used = 0;
+  for (const item of ingredients) {
+    const cost = item.length + (included.length ? 2 : 0);
+    if (used + cost > budget) break;
+    included.push(item);
+    used += cost;
+  }
+  const rest = included.length < ingredients.length ? ' y más' : '';
+  const pantry = included.length ? ` Tengo: ${included.join(', ')}${rest}.` : '';
+  return `${intro}${pantry}${wishLine}`;
+}
+
 /** Recetas de ejemplo con productos del catálogo inicial, para mostrar la app desde el primer día. */
 export const SAMPLE_RECIPES: Omit<Recipe, 'id'>[] = [
   {

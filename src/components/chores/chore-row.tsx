@@ -2,7 +2,7 @@ import { Pressable, View } from 'react-native';
 
 import { AppText, Icon } from '@/components/ui';
 import { cardShadow, radius, spacing } from '@/constants/theme';
-import { FREQUENCY_LABELS, type Chore } from '@/domain/chores';
+import { repeatLabel, repeatRuleOf, type Chore } from '@/domain/chores';
 import { formatDueLabel, type ISODate } from '@/domain/dates';
 import { makeStyles, useAppTheme } from '@/hooks/use-app-theme';
 
@@ -52,7 +52,7 @@ export function ChoreRow({ chore, today, assigneeName, onToggle, onEdit }: Chore
               <View style={styles.metaItem}>
                 <Icon name="repeat" size={14} color={colors.textSubtle} />
                 <AppText variant="caption" tone="subtle">
-                  {FREQUENCY_LABELS[chore.frequency]}
+                  {repeatLabel(repeatRuleOf(chore))}
                 </AppText>
               </View>
             ) : null}

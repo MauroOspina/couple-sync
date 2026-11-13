@@ -57,6 +57,16 @@ create table if not exists public.chores (
 );
 create index if not exists chores_household_idx on public.chores (household_id);
 
+-- Periodicidad libre: cada N días/semanas/meses (los años se guardan como meses × 12)
+-- y, en las semanales, días concretos (0 = domingo). Ejecutar ANTES de publicar la app que las usa.
+alter table public.chores add column if not exists repeat_every smallint not null default 1;
+alter table public.chores add column if not exists repeat_weekdays smallint[] not null default '{}';
+alter table public.chores drop constraint if exists chores_repeat_every_check;
+alter table public.chores add constraint chores_repeat_every_check check (repeat_every between 1 and 120);
+alter table public.chores drop constraint if exists chores_repeat_weekdays_check;
+alter table public.chores add constraint chores_repeat_weekdays_check
+  check (repeat_weekdays <@ array[0, 1, 2, 3, 4, 5, 6]::smallint[]);
+
 create table if not exists public.chore_logs (
   id uuid primary key default gen_random_uuid(),
   household_id uuid not null references public.households(id) on delete cascade,
@@ -90,6 +100,10 @@ create table if not exists public.suggestions (
   user_id uuid default auth.uid() references auth.users(id) on delete set null,
   created_at timestamptz not null default now()
 );
+
+-- Limpieza: un borrador anterior de las ideas con IA usaba esta tabla y función. Ya no existen.
+drop function if exists public.claim_ai_request(uuid);
+drop table if exists public.ai_requests;
 
 -- ---------------------------------------------------------------------
 -- 2. Tiempo real

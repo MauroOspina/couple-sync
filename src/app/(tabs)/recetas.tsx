@@ -4,6 +4,7 @@ import { Alert, FlatList, View } from 'react-native';
 import { RecipeCard } from '@/components/recipes/recipe-card';
 import { RecipeDetailSheet } from '@/components/recipes/recipe-detail-sheet';
 import { RecipeEditorSheet } from '@/components/recipes/recipe-editor-sheet';
+import { RecipeIdeasSheet } from '@/components/recipes/recipe-ideas-sheet';
 import { Button, EmptyState, IconButton, LoadingView, Screen, ScreenHeader } from '@/components/ui';
 import { spacing } from '@/constants/theme';
 import { checkIngredients, summarizeAvailability, type Recipe } from '@/domain/recipes';
@@ -18,6 +19,7 @@ export default function RecipesScreen() {
   const { products } = useInventory();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editor, setEditor] = useState<{ recipe: Recipe | null } | null>(null);
+  const [ideasOpen, setIdeasOpen] = useState(false);
 
   const entries = useMemo(
     () =>
@@ -48,7 +50,12 @@ export default function RecipesScreen() {
       <ScreenHeader
         title="Recetas"
         subtitle={recipes.length ? 'Primero las que pueden preparar ya' : undefined}
-        right={<IconButton icon="add" variant="primary" accessibilityLabel="Nueva receta" onPress={openNew} />}
+        right={
+          <View style={styles.headerActions}>
+            <IconButton icon="sparkles" accessibilityLabel="Ideas de recetas con IA" onPress={() => setIdeasOpen(true)} />
+            <IconButton icon="add" variant="primary" accessibilityLabel="Nueva receta" onPress={openNew} />
+          </View>
+        }
       />
 
       <FlatList
@@ -65,6 +72,7 @@ export default function RecipesScreen() {
             title="Aún no hay recetas"
             message="Guarden sus recetas favoritas y la app les dirá qué ingredientes tienen y cuáles faltan.">
             <Button label="Crear receta" icon="add" onPress={openNew} />
+            <Button label="Ideas con IA según mi despensa" icon="sparkles" variant="secondary" onPress={() => setIdeasOpen(true)} />
             <Button label="Ver 3 recetas de ejemplo" icon="sparkles" variant="secondary" onPress={addSampleRecipes} />
           </EmptyState>
         }
@@ -79,6 +87,7 @@ export default function RecipesScreen() {
         }}
       />
       <RecipeEditorSheet visible={editor !== null} recipe={editor?.recipe ?? null} onClose={() => setEditor(null)} />
+      <RecipeIdeasSheet visible={ideasOpen} onClose={() => setIdeasOpen(false)} />
     </Screen>
   );
 }
@@ -89,4 +98,5 @@ function Separator() {
 
 const useStyles = makeStyles(() => ({
   list: { padding: spacing.lg, paddingTop: spacing.xs, paddingBottom: spacing.xxl },
+  headerActions: { flexDirection: 'row', gap: spacing.sm },
 }));

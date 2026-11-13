@@ -1,5 +1,12 @@
 import type { Product } from '@/domain/inventory';
-import { checkIngredients, parseIngredientLines, parsePositiveInt, summarizeAvailability } from '@/domain/recipes';
+import {
+  buildRecipePrompt,
+  checkIngredients,
+  pantryForIdeas,
+  parseIngredientLines,
+  parsePositiveInt,
+  summarizeAvailability,
+} from '@/domain/recipes';
 
 const product = (id: string, name: string, status: Product['status']): Product => ({
   id,
@@ -26,5 +33,32 @@ describe('recipes', () => {
     expect(parsePositiveInt('0', 50)).toBeNull();
     expect(parsePositiveInt('999', 50)).toBe(50);
     expect(parsePositiveInt('', 50)).toBeNull();
+  });
+
+  it('arma la despensa para la IA sin agotados ni repetidos', () => {
+    const products = [
+      { name: 'Huevos', status: 'ok' as const },
+      { name: 'Leche', status: 'out' as const },
+      { name: 'Arroz', status: 'low' as const },
+      { name: 'huevos ', status: 'ok' as const },
+      { name: '  ', status: 'ok' as const },
+    ];
+    expect(pantryForIdeas(products)).toEqual(['Huevos', 'Arroz']);
+  });
+
+  it('arma la pregunta para la IA con la despensa y el antojo', () => {
+    const prompt = buildRecipePrompt(['Huevos', 'Arroz'], '  algo rápido ');
+    expect(prompt).toContain('Tengo: Huevos, Arroz.');
+    expect(prompt).toContain('Antojo: algo rápido.');
+    expect(buildRecipePrompt([], '')).not.toContain('Tengo');
+  });
+
+  it('corta la lista de ingredientes para que el link no sea muy largo', () => {
+    const many = Array.from({ length: 300 }, (_, i) => `Producto número ${i}`);
+    const prompt = buildRecipePrompt(many, 'x'.repeat(500), 1200);
+    expect(prompt.length).toBeLessThanOrEqual(1200);
+    expect(prompt).toContain('Producto número 0');
+    expect(prompt).toContain(' y más.');
+    expect(prompt).toContain(`Antojo: ${'x'.repeat(200)}.`);
   });
 });

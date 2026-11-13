@@ -57,3 +57,21 @@ export function formatDueLabel(due: ISODate, today: ISODate): string {
 export function startOfMonthISO(now: Date = new Date()): string {
   return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 }
+
+/** Encabezado de un día pasado: "Hoy", "Ayer", "Lunes 10 nov" (con año si no es el actual). */
+export function formatDayLabel(day: ISODate, today: ISODate): string {
+  const diff = diffInDays(day, today);
+  if (diff === 0) return 'Hoy';
+  if (diff === 1) return 'Ayer';
+  const date = parseISODate(day);
+  const label = `${WEEKDAYS[date.getDay()]} ${date.getDate()} ${MONTHS[date.getMonth()]}`;
+  return day.slice(0, 4) === today.slice(0, 4) ? label : `${label} ${date.getFullYear()}`;
+}
+
+/** Hora local corta: "8:05 a. m.", "12:30 p. m.". */
+export function formatTime(iso: string): string {
+  const date = new Date(iso);
+  const hours = date.getHours();
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${hours % 12 || 12}:${minutes} ${hours < 12 ? 'a. m.' : 'p. m.'}`;
+}

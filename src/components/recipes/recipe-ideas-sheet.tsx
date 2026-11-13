@@ -45,8 +45,8 @@ function IdeasContent() {
   return (
     <>
       <AppText variant="small" tone="muted">
-        Armamos una pregunta con lo que hay en tu despensa ({pantry.length} {pantry.length === 1 ? 'producto' : 'productos'}) y la
-        abres en tu propia IA: el Modo IA de Google, la app de Gemini o la que prefieras. Couple Sync no envía tus datos a ninguna
+        Armamos una pregunta con la comida de tu despensa ({pantry.length} {pantry.length === 1 ? 'alimento' : 'alimentos'}, sin
+        aseo ni farmacia) y la abres en tu propia IA: el Modo IA de Google, la app de Gemini o la que prefieras. Couple Sync no envía tus datos a ninguna
         IA.
       </AppText>
 

@@ -35,22 +35,33 @@ describe('recipes', () => {
     expect(parsePositiveInt('', 50)).toBeNull();
   });
 
-  it('arma la despensa para la IA sin agotados ni repetidos', () => {
+  it('arma la despensa para la IA: solo comida, sin agotados ni repetidos', () => {
     const products = [
-      { name: 'Huevos', status: 'ok' as const },
-      { name: 'Leche', status: 'out' as const },
-      { name: 'Arroz', status: 'low' as const },
-      { name: 'huevos ', status: 'ok' as const },
-      { name: '  ', status: 'ok' as const },
+      { name: 'Huevos', status: 'ok' as const, category: 'Lácteos y Huevos' },
+      { name: 'Leche', status: 'out' as const, category: 'Lácteos y Huevos' },
+      { name: 'Arroz', status: 'low' as const, category: 'Despensa y Salsas' },
+      { name: 'huevos ', status: 'ok' as const, category: 'Lácteos y Huevos' },
+      { name: '  ', status: 'ok' as const, category: 'Frutas' },
+      { name: 'Advil', status: 'ok' as const, category: 'Farmacia' },
+      { name: 'Shampoo', status: 'ok' as const, category: 'Aseo Personal' },
+      { name: 'Detergente', status: 'ok' as const, category: 'Aseo Hogar' },
+      { name: 'Concentrado', status: 'ok' as const, category: 'Mascotas' },
+      { name: 'Trampa Raid', status: 'ok' as const, category: 'Otros' },
+      { name: 'Sin categoría', status: 'ok' as const, category: '' },
     ];
     expect(pantryForIdeas(products)).toEqual(['Huevos', 'Arroz']);
   });
 
-  it('arma la pregunta para la IA con la despensa y el antojo', () => {
-    const prompt = buildRecipePrompt(['Huevos', 'Arroz'], '  algo rápido ');
-    expect(prompt).toContain('Tengo: Huevos, Arroz.');
-    expect(prompt).toContain('Antojo: algo rápido.');
-    expect(buildRecipePrompt([], '')).not.toContain('Tengo');
+  it('pone el antojo primero y como condición', () => {
+    const prompt = buildRecipePrompt(['Fresas', 'Banano'], '  algo dulce ');
+    expect(prompt.startsWith('Tengo antojo de: algo dulce.')).toBe(true);
+    expect(prompt).toContain('que cumplan ese antojo');
+    expect(prompt.indexOf('antojo')).toBeLessThan(prompt.indexOf('Tengo: Fresas, Banano.'));
+  });
+
+  it('arma la pregunta sin antojo y sin despensa', () => {
+    expect(buildRecipePrompt(['Huevos'], '')).not.toContain('antojo');
+    expect(buildRecipePrompt([], '')).not.toContain('Tengo:');
   });
 
   it('corta la lista de ingredientes para que el link no sea muy largo', () => {
@@ -59,6 +70,6 @@ describe('recipes', () => {
     expect(prompt.length).toBeLessThanOrEqual(1200);
     expect(prompt).toContain('Producto número 0');
     expect(prompt).toContain(' y más.');
-    expect(prompt).toContain(`Antojo: ${'x'.repeat(200)}.`);
+    expect(prompt).toContain(`Tengo antojo de: ${'x'.repeat(200)}.`);
   });
 });

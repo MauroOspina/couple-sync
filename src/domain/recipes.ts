@@ -1,3 +1,4 @@
+import { DEFAULT_CATEGORY, NON_FOOD_CATEGORIES } from '@/constants/catalog';
 import type { SyncedItem } from '@/domain/collection';
 import { findProduct, type Product } from '@/domain/inventory';
 import { normalizeText } from '@/domain/text';
@@ -76,14 +77,15 @@ export function parsePositiveInt(value: string, max: number): number | null {
   return Math.min(parsed, max);
 }
 
-/** Productos que hay o de los que queda poco, sin repetidos: lo que se le cuenta a la IA. */
-export function pantryForIdeas(products: Pick<Product, 'name' | 'status'>[]): string[] {
+/** Comida que hay o de la que queda poco, sin repetidos: lo que se le cuenta a la IA (nada de aseo ni farmacia). */
+export function pantryForIdeas(products: Pick<Product, 'name' | 'status' | 'category'>[]): string[] {
   const seen = new Set<string>();
   const names: string[] = [];
   for (const product of products) {
     const name = product.name.trim();
     const key = normalizeText(name);
     if (product.status === 'out' || !name || seen.has(key)) continue;
+    if (NON_FOOD_CATEGORIES.includes(product.category || DEFAULT_CATEGORY)) continue;
     seen.add(key);
     names.push(name);
   }
@@ -94,15 +96,17 @@ export const MAX_CRAVING_LENGTH = 200;
 
 /**
  * Pregunta lista para pegar en Gemini, el Modo IA de Google u otra IA.
+ * El antojo va primero y como condición: si va al final, la IA lo trata como un dato más.
  * Se corta la lista de ingredientes para no pasar de `maxLength` (los links muy largos fallan).
  */
 export function buildRecipePrompt(ingredients: string[], craving: string, maxLength = 1200): string {
   const wish = craving.trim().slice(0, MAX_CRAVING_LENGTH);
-  const intro =
-    'Propón 3 recetas caseras y fáciles usando sobre todo lo que tengo en la despensa. ' +
-    'Para cada una dame nombre, tiempo, porciones, ingredientes con cantidades y pasos cortos. Responde en español.';
-  const wishLine = wish ? ` Antojo: ${wish}.` : '';
-  const budget = maxLength - intro.length - wishLine.length - ' Tengo: . y más'.length;
+  const intro = wish
+    ? `Tengo antojo de: ${wish}. Propón 3 recetas caseras y fáciles que cumplan ese antojo, ` +
+      'aprovechando lo que tengo en la cocina cuando sirva (no hace falta usarlo todo).'
+    : 'Propón 3 recetas caseras y fáciles aprovechando lo que tengo en la cocina (no hace falta usarlo todo).';
+  const outro = ' Para cada una dame nombre, tiempo, porciones, ingredientes con cantidades y pasos cortos. Responde en español.';
+  const budget = maxLength - intro.length - outro.length - ' Tengo: . y más'.length;
 
   const included: string[] = [];
   let used = 0;
@@ -114,7 +118,7 @@ export function buildRecipePrompt(ingredients: string[], craving: string, maxLen
   }
   const rest = included.length < ingredients.length ? ' y más' : '';
   const pantry = included.length ? ` Tengo: ${included.join(', ')}${rest}.` : '';
-  return `${intro}${pantry}${wishLine}`;
+  return `${intro}${pantry}${outro}`;
 }
 
 /** Recetas de ejemplo con productos del catálogo inicial, para mostrar la app desde el primer día. */

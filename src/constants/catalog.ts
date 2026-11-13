@@ -21,6 +21,9 @@ export const CATEGORIES: Record<string, string> = {
   [DEFAULT_CATEGORY]: '📦',
 };
 
+/** Categorías que no son comida: no se mandan a la IA al pedir ideas de recetas. "Otros" mezcla de todo. */
+export const NON_FOOD_CATEGORIES = ['Aseo Hogar', 'Aseo Personal', 'Farmacia', 'Mascotas', DEFAULT_CATEGORY];
+
 export const STATUS_LABELS = {
   ok: 'Hay',
   low: 'Queda poco',

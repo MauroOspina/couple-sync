@@ -17,7 +17,7 @@ import { useRecipes } from '@/providers/recipes-provider';
 /** Recetas del hogar, ordenadas por cuántos ingredientes ya hay en la despensa. */
 export default function RecipesScreen() {
   const styles = useStyles();
-  const { recipes, ready, canAddRecipe, addSampleRecipes } = useRecipes();
+  const { recipes, ready, canAddRecipe, addSampleRecipes, importRequest, clearImportRequest } = useRecipes();
   const { products } = useInventory();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editor, setEditor] = useState<{ recipe: Recipe | null; initial?: RecipeContent } | null>(null);
@@ -38,6 +38,10 @@ export default function RecipesScreen() {
   if (!ready) return <LoadingView />;
 
   const selected = recipes.find(recipe => recipe.id === selectedId) ?? null;
+  // "Compartir → Nest": una receta abre el editor ya lleno; varias abren la hoja para elegir cuál.
+  const sharedSingle = importRequest?.recipes.length === 1 ? importRequest.recipes[0] : null;
+  const sharedMany = importRequest && importRequest.recipes.length > 1 ? importRequest.text : null;
+  const editorInitial = editor?.initial ?? sharedSingle ?? undefined;
 
   const openNew = (initial?: RecipeContent) => {
     if (!canAddRecipe) {
@@ -90,14 +94,28 @@ export default function RecipesScreen() {
         }}
       />
       <RecipeEditorSheet
-        visible={editor !== null}
+        visible={editor !== null || sharedSingle !== null}
         recipe={editor?.recipe ?? null}
-        initial={editor?.initial}
-        onClose={() => setEditor(null)}
+        initial={editorInitial}
+        onClose={() => {
+          setEditor(null);
+          clearImportRequest();
+        }}
         // Una receta traída de la IA se muestra al guardarla, con lo que falta de la despensa.
-        onSaved={saved => (editor?.initial ? setSelectedId(saved.id) : undefined)}
+        onSaved={saved => (editorInitial ? setSelectedId(saved.id) : undefined)}
       />
-      <RecipeIdeasSheet visible={ideasOpen} onClose={() => setIdeasOpen(false)} onImport={openNew} />
+      <RecipeIdeasSheet
+        visible={ideasOpen || sharedMany !== null}
+        initialPaste={sharedMany}
+        onClose={() => {
+          setIdeasOpen(false);
+          clearImportRequest();
+        }}
+        onImport={recipe => {
+          clearImportRequest();
+          openNew(recipe);
+        }}
+      />
     </Screen>
   );
 }

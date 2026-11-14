@@ -1,21 +1,55 @@
+import { useRouter } from 'expo-router';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
+import { useShareIntentContext } from 'expo-share-intent';
+import { useEffect } from 'react';
+import { Alert } from 'react-native';
 
+import { APP_CONFIG } from '@/constants/config';
 import { fonts } from '@/constants/theme';
 import { useAppTheme } from '@/hooks/use-app-theme';
 import { ChoresProvider, useChores } from '@/providers/chores-provider';
 import { InventoryProvider, useInventory } from '@/providers/inventory-provider';
-import { RecipesProvider } from '@/providers/recipes-provider';
+import { RecipesProvider, useRecipes } from '@/providers/recipes-provider';
 
 export default function TabsLayout() {
   return (
     <InventoryProvider>
       <ChoresProvider>
         <RecipesProvider>
+          <SharedTextReceiver />
           <Tabs />
         </RecipesProvider>
       </ChoresProvider>
     </InventoryProvider>
   );
+}
+
+/**
+ * "Compartir → Nest" desde otra app (Gemini, el navegador...): guarda el texto y abre Recetas,
+ * que lo convierte en receta. Si se comparte sin sesión, espera aquí hasta que haya pestañas.
+ */
+function SharedTextReceiver() {
+  const router = useRouter();
+  const { hasShareIntent, shareIntent, resetShareIntent } = useShareIntentContext();
+  const { importSharedText, canAddRecipe } = useRecipes();
+
+  useEffect(() => {
+    if (!hasShareIntent) return;
+    resetShareIntent();
+    const text = shareIntent.text?.trim();
+    if (!text) return;
+    if (!canAddRecipe) {
+      Alert.alert('Límite del plan gratuito', `Muy pronto podrás guardar recetas ilimitadas con ${APP_CONFIG.name} Premium.`);
+      return;
+    }
+    if (importSharedText(text) === 0) {
+      Alert.alert('No encontramos una receta', 'Comparte la receta completa: el nombre, los ingredientes y los pasos.');
+      return;
+    }
+    router.navigate('/recetas');
+  }, [hasShareIntent, shareIntent, resetShareIntent, importSharedText, canAddRecipe, router]);
+
+  return null;
 }
 
 /** Pestañas nativas. Íconos: `md` = Material Symbols (Android), `sf` = SF Symbols (iOS). */

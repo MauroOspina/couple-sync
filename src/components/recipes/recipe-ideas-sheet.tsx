@@ -18,6 +18,8 @@ interface RecipeIdeasSheetProps {
   onClose: () => void;
   /** La persona pegó una receta y eligió guardarla: se abre el editor ya lleno. */
   onImport: (recipe: RecipeContent) => void;
+  /** Texto que llegó compartido desde otra app: se muestra ya pegado y leído. */
+  initialPaste?: string | null;
 }
 
 /**
@@ -25,20 +27,20 @@ interface RecipeIdeasSheetProps {
  * Modo IA de Google o la comparte con Gemini, ChatGPT, etc. La app no envía datos a ninguna IA.
  * La receta que guste se pega de vuelta y la app la convierte en receta propia.
  */
-export function RecipeIdeasSheet({ visible, onClose, onImport }: RecipeIdeasSheetProps) {
+export function RecipeIdeasSheet({ visible, onClose, onImport, initialPaste }: RecipeIdeasSheetProps) {
   return (
     <Sheet visible={visible} onClose={onClose} title="Ideas con IA">
-      {visible ? <IdeasContent onImport={onImport} /> : null}
+      {visible ? <IdeasContent key={initialPaste ?? ''} onImport={onImport} initialPaste={initialPaste} /> : null}
     </Sheet>
   );
 }
 
-function IdeasContent({ onImport }: Pick<RecipeIdeasSheetProps, 'onImport'>) {
+function IdeasContent({ onImport, initialPaste }: Pick<RecipeIdeasSheetProps, 'onImport' | 'initialPaste'>) {
   const styles = useStyles();
   const { products } = useInventory();
   const [craving, setCraving] = useState('');
-  const [pasted, setPasted] = useState('');
-  const [found, setFound] = useState<RecipeContent[]>([]);
+  const [pasted, setPasted] = useState(initialPaste ?? '');
+  const [found, setFound] = useState<RecipeContent[]>(() => (initialPaste ? parseRecipeText(initialPaste) : []));
   const pantry = useMemo(() => pantryForIdeas(products), [products]);
   const prompt = buildRecipePrompt(pantry, craving);
   const empty = pantry.length === 0;

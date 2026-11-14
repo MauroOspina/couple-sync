@@ -35,6 +35,7 @@ Base de datos: `supabase/schema.sql` (idempotente). Páginas legales: `docs/` (G
 - `ios/` y `android/` no existen (CNG): configura en `app.json`.
 - La app se llama **Nest**, pero `scheme: couplesync` (login de Google), `package: com.couplesync.app` (Play) y `slug: couple-app` (EAS) conservan el nombre viejo a propósito: no los cambies.
 - Ícono y splash: ver `assets/brand/README.md`.
+- "Compartir → Nest" usa `expo-share-intent` (nativo). En Expo Go no recibe nada pero la app abre igual; para probarlo hace falta un APK.
 - No hagas `git push` ni ejecutes nada contra Supabase: eso lo hace la persona.
 
 ## Ramas y publicación

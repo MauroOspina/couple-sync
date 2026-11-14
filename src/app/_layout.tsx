@@ -6,6 +6,7 @@ import { Nunito_800ExtraBold } from '@expo-google-fonts/nunito/800ExtraBold';
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { ShareIntentProvider } from 'expo-share-intent';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, type PropsWithChildren } from 'react';
 
@@ -24,11 +25,14 @@ export default function RootLayout() {
   });
 
   return (
-    <SessionProvider>
-      <NavigationTheme>
-        <RootNavigator fontsReady={fontsLoaded || fontError !== null} />
-      </NavigationTheme>
-    </SessionProvider>
+    // Recibe "Compartir → Nest". En Expo Go el módulo nativo no existe y simplemente no hace nada.
+    <ShareIntentProvider options={{ resetOnBackground: false }}>
+      <SessionProvider>
+        <NavigationTheme>
+          <RootNavigator fontsReady={fontsLoaded || fontError !== null} />
+        </NavigationTheme>
+      </SessionProvider>
+    </ShareIntentProvider>
   );
 }
 

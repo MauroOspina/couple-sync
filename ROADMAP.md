@@ -31,9 +31,8 @@ Cada tarea de Cline va en una **conversación nueva** (botón +). Al terminar, r
 ## Fase 3 · Mejoras rápidas ✅ (18 nov 2026)
 Hechas: pull to refresh (Despensa y Mercado), deshacer al terminar el mercado, buscar recetas, elegir categoría si un producto nuevo del mercado cae en "Otros", compartir la lista del mercado (botón en el encabezado).
 
-## Lista del mercado e historial de compras (19 nov 2026)
+## Lista del mercado separada del estado (19 nov 2026)
 - Solo "Falta" entra sola a la lista. "Queda poco" y lo que se quita con "No comprar esta vez" quedan en "Fuera de la lista" (al final del Mercado). Al cambiar el estado se olvida esa decisión. Columna `products.on_list`.
-- Al terminar el mercado se pregunta el total (opcional) y queda en el historial (botón de reloj en el Mercado), agrupado por mes. Tabla `purchases`.
 - **Antes de publicar**: correr `supabase/schema.sql` (si la app sale antes, los productos dejan de sincronizar).
 
 ## Fase 4 · Monetización (cuando haya usuarios)
@@ -48,3 +47,4 @@ Hechas: pull to refresh (Despensa y Mercado), deshacer al terminar el mercado, b
 ## Fase 5 · Ideas para crecer
 - Recordatorios de tareas (expo-notifications; requiere build).
 - Cantidades en productos ("2 litros").
+- Historial de compras y gasto mensual (pospuesto).

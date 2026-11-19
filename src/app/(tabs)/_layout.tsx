@@ -9,20 +9,17 @@ import { fonts } from '@/constants/theme';
 import { useAppTheme } from '@/hooks/use-app-theme';
 import { ChoresProvider, useChores } from '@/providers/chores-provider';
 import { InventoryProvider, useInventory } from '@/providers/inventory-provider';
-import { PurchasesProvider } from '@/providers/purchases-provider';
 import { RecipesProvider, useRecipes } from '@/providers/recipes-provider';
 
 export default function TabsLayout() {
   return (
     <InventoryProvider>
-      <PurchasesProvider>
-        <ChoresProvider>
-          <RecipesProvider>
-            <SharedTextReceiver />
-            <Tabs />
-          </RecipesProvider>
-        </ChoresProvider>
-      </PurchasesProvider>
+      <ChoresProvider>
+        <RecipesProvider>
+          <SharedTextReceiver />
+          <Tabs />
+        </RecipesProvider>
+      </ChoresProvider>
     </InventoryProvider>
   );
 }

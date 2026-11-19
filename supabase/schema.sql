@@ -94,18 +94,6 @@ create table if not exists public.recipes (
 );
 create index if not exists recipes_household_idx on public.recipes (household_id);
 
--- Historial de compras: un registro por cada "Terminar mercado", con el total opcional.
-create table if not exists public.purchases (
-  id uuid primary key default gen_random_uuid(),
-  household_id uuid not null references public.households(id) on delete cascade,
-  bought_at timestamptz not null default now(),
-  total numeric(14, 2) check (total >= 0),
-  items jsonb not null default '[]'::jsonb,
-  created_by uuid default auth.uid() references auth.users(id) on delete set null,
-  updated_at timestamptz not null default now()
-);
-create index if not exists purchases_household_idx on public.purchases (household_id, bought_at desc);
-
 -- Buzón de sugerencias. La app solo puede escribir; se leen en el panel (Table Editor → suggestions).
 create table if not exists public.suggestions (
   id uuid primary key default gen_random_uuid(),
@@ -126,7 +114,7 @@ drop table if exists public.ai_requests;
 do $$
 declare t text;
 begin
-  foreach t in array array['households', 'household_members', 'products', 'chores', 'chore_logs', 'recipes', 'purchases'] loop
+  foreach t in array array['households', 'household_members', 'products', 'chores', 'chore_logs', 'recipes'] loop
     if not exists (
       select 1 from pg_publication_tables
       where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t
@@ -146,7 +134,6 @@ alter table public.products enable row level security;
 alter table public.chores enable row level security;
 alter table public.chore_logs enable row level security;
 alter table public.recipes enable row level security;
-alter table public.purchases enable row level security;
 alter table public.suggestions enable row level security;
 
 -- Borra cualquier política que no sea de este archivo (p. ej. creadas a mano en el panel).
@@ -156,11 +143,11 @@ begin
   for p in
     select policyname, tablename from pg_policies
     where schemaname = 'public'
-      and tablename in ('households', 'household_members', 'products', 'chores', 'chore_logs', 'recipes', 'purchases', 'suggestions')
+      and tablename in ('households', 'household_members', 'products', 'chores', 'chore_logs', 'recipes', 'suggestions')
       and policyname not in (
         'households_select', 'households_insert', 'households_update', 'households_delete',
         'members_select', 'members_insert_owner', 'members_delete_self',
-        'products_all', 'chores_all', 'chore_logs_all', 'recipes_all', 'purchases_all', 'suggestions_insert'
+        'products_all', 'chores_all', 'chore_logs_all', 'recipes_all', 'suggestions_insert'
       )
   loop
     execute format('drop policy %I on public.%I', p.policyname, p.tablename);
@@ -216,11 +203,6 @@ create policy "chore_logs_all" on public.chore_logs for all to authenticated
 
 drop policy if exists "recipes_all" on public.recipes;
 create policy "recipes_all" on public.recipes for all to authenticated
-  using (public.is_household_member(household_id))
-  with check (public.is_household_member(household_id));
-
-drop policy if exists "purchases_all" on public.purchases;
-create policy "purchases_all" on public.purchases for all to authenticated
   using (public.is_household_member(household_id))
   with check (public.is_household_member(household_id));
 

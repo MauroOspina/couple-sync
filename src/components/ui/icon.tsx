@@ -16,6 +16,7 @@ const ICONS = {
   calendar: { ios: 'calendar', android: 'calendar_today' },
   cart: { ios: 'cart', android: 'shopping_cart' },
   cartAdd: { ios: 'cart.badge.plus', android: 'add_shopping_cart' },
+  cartRemove: { ios: 'cart.badge.minus', android: 'remove_shopping_cart' },
   check: { ios: 'checkmark', android: 'check' },
   checkCircle: { ios: 'checkmark.circle.fill', android: 'check_circle' },
   chevronRight: { ios: 'chevron.right', android: 'chevron_right' },

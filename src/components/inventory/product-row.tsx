@@ -13,10 +13,12 @@ interface ProductRowProps {
   mode: 'pantry' | 'market' | 'offList';
   onPress: () => void;
   onEdit: () => void;
+  /** Muestra el botón "No comprar esta vez" (solo en la lista del mercado). */
+  onRemove?: () => void;
   showCategory?: boolean;
 }
 
-export function ProductRow({ product, mode, onPress, onEdit, showCategory = false }: ProductRowProps) {
+export function ProductRow({ product, mode, onPress, onEdit, onRemove, showCategory = false }: ProductRowProps) {
   const styles = useStyles();
   const theme = useAppTheme();
   const inCart = mode === 'market' && Boolean(product.inCart);
@@ -59,6 +61,9 @@ export function ProductRow({ product, mode, onPress, onEdit, showCategory = fals
         </View>
         {inCart ? null : <StatusPill status={product.status} />}
       </Pressable>
+      {onRemove ? (
+        <IconButton icon="cartRemove" variant="plain" size={36} accessibilityLabel={`No comprar ${product.name} esta vez`} onPress={onRemove} />
+      ) : null}
       <IconButton icon="edit" variant="plain" size={36} accessibilityLabel={`Editar ${product.name}`} onPress={onEdit} />
     </View>
   );

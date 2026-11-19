@@ -1,16 +1,18 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Keyboard, Pressable, RefreshControl, SectionList, Share, View } from 'react-native';
 
 import { AddItemBar } from '@/components/inventory/add-item-bar';
 import { ProductEditSheet } from '@/components/inventory/product-edit-sheet';
 import { ProductRow } from '@/components/inventory/product-row';
-import { AppText, Button, EmptyState, IconButton, LoadingView, ProgressBar, Screen, ScreenHeader, SectionTitle } from '@/components/ui';
+import { AppText, Button, EmptyState, IconButton, LoadingView, ProgressBar, Screen, ScreenHeader, SectionTitle, Snackbar } from '@/components/ui';
 import { DEFAULT_CATEGORY } from '@/constants/catalog';
 import { spacing } from '@/constants/theme';
 import { formatShoppingList, groupByCategory, isInCart, splitMarket, type Product } from '@/domain/inventory';
 import { makeStyles, useAppTheme } from '@/hooks/use-app-theme';
 import { useRefresh } from '@/hooks/use-refresh';
 import { useInventory } from '@/providers/inventory-provider';
+
+const SNACKBAR_MS = 4000;
 
 /**
  * Lista del mercado, agrupada por categoría. "Falta" entra sola; "Queda poco" y lo que se quitó
@@ -19,10 +21,18 @@ import { useInventory } from '@/providers/inventory-provider';
 export default function MarketScreen() {
   const styles = useStyles();
   const { colors } = useAppTheme();
-  const { products, ready, toggleCart, setOnList, finishShopping, addProduct, refresh } = useInventory();
+  const { products, ready, toggleCart, setOnList, updateProduct, finishShopping, addProduct, refresh } = useInventory();
   const { refreshing, onRefresh } = useRefresh(refresh);
   const [editing, setEditing] = useState<Product | null>(null);
   const [showOffList, setShowOffList] = useState(false);
+  /** Lo último que se sacó de la lista, para poder deshacerlo. */
+  const [removed, setRemoved] = useState<Product | null>(null);
+
+  useEffect(() => {
+    if (!removed) return;
+    const timer = setTimeout(() => setRemoved(null), SNACKBAR_MS);
+    return () => clearTimeout(timer);
+  }, [removed]);
 
   const { listed, offList } = useMemo(() => splitMarket(products), [products]);
   const sections = useMemo(
@@ -48,6 +58,16 @@ export default function MarketScreen() {
         },
       },
     ]);
+  };
+
+  const removeFromList = (product: Product) => {
+    setOnList(product.id, false);
+    setRemoved(product);
+  };
+
+  const undoRemove = () => {
+    if (removed) updateProduct(removed);
+    setRemoved(null);
   };
 
   const shareList = () => {
@@ -123,7 +143,13 @@ export default function MarketScreen() {
           />
         )}
         renderItem={({ item }) => (
-          <ProductRow product={item} mode="market" onPress={() => toggleCart(item.id)} onEdit={() => setEditing(item)} />
+          <ProductRow
+            product={item}
+            mode="market"
+            onPress={() => toggleCart(item.id)}
+            onRemove={() => removeFromList(item)}
+            onEdit={() => setEditing(item)}
+          />
         )}
         ListEmptyComponent={
           <EmptyState
@@ -141,6 +167,10 @@ export default function MarketScreen() {
         </View>
       ) : null}
       <AddItemBar placeholder="Agregar algo que falta..." onSubmit={add} />
+
+      {removed ? (
+        <Snackbar icon="cartRemove" message={`${removed.name}: no se compra esta vez`} actionLabel="Deshacer" onAction={undoRemove} />
+      ) : null}
 
       <ProductEditSheet product={editing} onClose={() => setEditing(null)} />
     </Screen>

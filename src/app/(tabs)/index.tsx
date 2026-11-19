@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { BackHandler, FlatList, RefreshControl, ScrollView, View } from 'react-native';
+import { BackHandler, FlatList, Keyboard, RefreshControl, ScrollView, View } from 'react-native';
 
 import { AddItemBar } from '@/components/inventory/add-item-bar';
 import { CategoryGrid } from '@/components/inventory/category-grid';
@@ -53,9 +53,14 @@ export default function PantryScreen() {
     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />
   );
   const hasExactMatch = list.some(product => matchKey(product.name) === matchKey(query));
+  // Si el producto nuevo no encaja en ninguna categoría, se abre el editor para elegirla.
   const addFromSearch = () => {
-    addProduct(query, undefined, 'ok');
+    const product = addProduct(query, undefined, 'ok');
     setQuery('');
+    if (product?.category === DEFAULT_CATEGORY) {
+      Keyboard.dismiss();
+      setEditing(product);
+    }
   };
 
   return (

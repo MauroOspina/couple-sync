@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Alert, RefreshControl, SectionList, Share, View } from 'react-native';
+import { Alert, Keyboard, RefreshControl, SectionList, Share, View } from 'react-native';
 
 import { AddItemBar } from '@/components/inventory/add-item-bar';
 import { ProductEditSheet } from '@/components/inventory/product-edit-sheet';
@@ -53,7 +53,10 @@ export default function MarketScreen() {
   // Si el producto nuevo no encaja en ninguna categoría, se abre el editor para elegirla.
   const add = (name: string) => {
     const product = addProduct(name, undefined, 'out');
-    if (product?.category === DEFAULT_CATEGORY) setEditing(product);
+    if (product?.category === DEFAULT_CATEGORY) {
+      Keyboard.dismiss();
+      setEditing(product);
+    }
   };
 
   return (

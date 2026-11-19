@@ -13,14 +13,14 @@ Cada tarea de Cline va en una **conversación nueva** (botón +). Al terminar, r
 5. [x] **Producción**: `git push origin main`.
 
 **B · Bloqueos de Google Play** (ver Fase 2)
-- [ ] Correo de contacto en `docs/` (también corregir "Couple Sync" en el asunto del mailto de `docs/delete-account.html`).
+- [x] Correo de contacto en `docs/` (también corregir "Couple Sync" en el asunto del mailto de `docs/delete-account.html`).
 - [ ] GitHub Pages: hoy la URL de privacidad da **404**.
 - [ ] OAuth publicado, Play Console, prueba cerrada.
 
 **C · Cuando haya tiempo**: mejoras de la Fase 3 (prompts listos para Cline).
 
 ## Fase 2 · Requisitos de Google Play (tú)
-- [ ] **Correo de contacto**: reemplaza `CORREO_DE_CONTACTO` en `docs/privacy.html` y `docs/delete-account.html` por un correo personal.
+- [x] **Correo de contacto**: reemplaza `CORREO_DE_CONTACTO` en `docs/privacy.html` y `docs/delete-account.html` por un correo personal.
 - [ ] **GitHub Pages**: repo → Settings → Pages → Branch `main`, carpeta `/docs`. Las URLs quedan como en `src/constants/config.ts`.
 - [ ] **Google OAuth**: Google Cloud Console → pantalla de consentimiento → "Publicar app" (en modo prueba solo entran 100 usuarios).
 - [x] **Ícono y splash propios**: hechos con el cambio a Nest (ver `assets/brand/README.md`).

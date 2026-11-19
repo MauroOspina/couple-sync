@@ -5,8 +5,22 @@ import {
   pantryForIdeas,
   parseIngredientLines,
   parsePositiveInt,
+  searchRecipes,
   summarizeAvailability,
 } from '@/domain/recipes';
+
+describe('searchRecipes', () => {
+  const recipes = [{ title: 'Ajiaco santafereño' }, { title: 'Arroz con pollo' }, { title: 'Pollo al curry' }];
+
+  it('busca sin tildes ni mayúsculas', () => {
+    expect(searchRecipes(recipes, 'SANTAFERENO')).toEqual([{ title: 'Ajiaco santafereño' }]);
+    expect(searchRecipes(recipes, 'pollo')).toHaveLength(2);
+  });
+
+  it('sin búsqueda devuelve todas', () => {
+    expect(searchRecipes(recipes, '  ')).toBe(recipes);
+  });
+});
 
 const product = (id: string, name: string, status: Product['status']): Product => ({
   id,

@@ -3,6 +3,7 @@ import {
   createStarterProducts,
   findProduct,
   finishShopping,
+  formatShoppingList,
   guessCategory,
   summarizeCategories,
   type Product,
@@ -64,5 +65,18 @@ describe('inventory', () => {
     expect(starter).toHaveLength(expected);
     expect(new Set(starter.map(item => item.id)).size).toBe(expected);
     expect(starter[0].id).toBe('1');
+  });
+
+  it('arma la lista del mercado para compartir, por categoría y marcando el carrito', () => {
+    const list = [
+      product('1', 'Pan', 'low', { category: 'Panadería y Arepas' }),
+      product('2', 'Leche', 'out', { category: 'Lácteos y Huevos', inCart: true }),
+      product('3', 'Huevos', 'out', { category: 'Lácteos y Huevos' }),
+      product('4', 'Arroz', 'ok', { category: 'Granos' }),
+    ];
+    expect(formatShoppingList(list)).toBe(
+      '🛒 Lista del mercado\n\n🧀 Lácteos y Huevos\n• Huevos\n✅ Leche\n\n🍞 Panadería y Arepas\n• Pan',
+    );
+    expect(formatShoppingList([product('5', 'Sal')])).toBe('');
   });
 });

@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { BackHandler, FlatList, ScrollView, View } from 'react-native';
+import { BackHandler, FlatList, RefreshControl, ScrollView, View } from 'react-native';
 
 import { AddItemBar } from '@/components/inventory/add-item-bar';
 import { CategoryGrid } from '@/components/inventory/category-grid';
@@ -12,6 +12,7 @@ import { radius, spacing } from '@/constants/theme';
 import { categoryEmoji, searchProducts, sortByName, summarizeCategories, type Product } from '@/domain/inventory';
 import { capitalize, matchKey } from '@/domain/text';
 import { makeStyles, useAppTheme } from '@/hooks/use-app-theme';
+import { useRefresh } from '@/hooks/use-refresh';
 import { useInventory } from '@/providers/inventory-provider';
 import { useSession } from '@/providers/session-provider';
 
@@ -21,7 +22,8 @@ export default function PantryScreen() {
   const { colors } = useAppTheme();
   const router = useRouter();
   const { household, isGuest } = useSession();
-  const { products, ready, pendingCount, neededCount, cycleStatus, addProduct } = useInventory();
+  const { products, ready, pendingCount, neededCount, cycleStatus, addProduct, refresh } = useInventory();
+  const { refreshing, onRefresh } = useRefresh(refresh);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<string | null>(null);
   const [editing, setEditing] = useState<Product | null>(null);
@@ -47,6 +49,9 @@ export default function PantryScreen() {
   if (!ready) return <LoadingView message="Cargando la despensa..." />;
 
   const inCategory = category !== null && !searching;
+  const refreshControl = (
+    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />
+  );
   const hasExactMatch = list.some(product => matchKey(product.name) === matchKey(query));
   const addFromSearch = () => {
     addProduct(query, undefined, 'ok');
@@ -91,6 +96,7 @@ export default function PantryScreen() {
           keyExtractor={product => product.id}
           contentContainerStyle={styles.list}
           keyboardShouldPersistTaps="handled"
+          refreshControl={refreshControl}
           ItemSeparatorComponent={Separator}
           renderItem={({ item }) => (
             <ProductRow
@@ -119,7 +125,7 @@ export default function PantryScreen() {
           }
         />
       ) : (
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView contentContainerStyle={styles.content} refreshControl={refreshControl}>
           {neededCount > 0 ? (
             <Card style={styles.summary} onPress={() => router.navigate('/mercado')} accessibilityLabel={`${neededCount} productos por comprar. Ir al mercado`}>
               <View style={styles.summaryIcon}>

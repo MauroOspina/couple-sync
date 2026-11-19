@@ -76,6 +76,16 @@ export function finishShopping(products: Product[]): Product[] {
   return products.filter(product => product.inCart).map(product => ({ ...product, status: 'ok' as const, inCart: false }));
 }
 
+/** Texto de la lista del mercado para compartir (WhatsApp...), agrupado por categoría. Vacío si no falta nada. */
+export function formatShoppingList(products: Product[]): string {
+  const groups = groupByCategory(products.filter(isNeeded));
+  if (!groups.length) return '';
+  const sections = groups.map(group =>
+    [`${group.emoji} ${group.category}`, ...group.items.map(item => `${item.inCart ? '✅' : '•'} ${item.name}`)].join('\n'),
+  );
+  return ['🛒 Lista del mercado', ...sections].join('\n\n');
+}
+
 const STATUS_PRIORITY: Record<StockStatus, number> = { ok: 0, low: 1, out: 2 };
 
 /**

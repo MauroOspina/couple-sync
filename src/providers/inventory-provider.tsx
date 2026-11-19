@@ -28,8 +28,8 @@ interface InventoryContextValue {
   cycleStatus: (id: string) => void;
   setStatus: (id: string, status: StockStatus) => void;
   toggleCart: (id: string) => void;
-  /** Lo del carrito pasa a "Hay". Devuelve cuántos productos se compraron. */
-  finishShopping: () => number;
+  /** Lo del carrito pasa a "Hay". Devuelve cuántos se compraron y cómo dejarlos como estaban. */
+  finishShopping: () => { count: number; undo: () => void };
   /** Crea en "Falta" los ingredientes que no están en la despensa. Devuelve cuántos agregó. */
   addMissingToMarket: (ingredients: string[]) => number;
   refresh: () => Promise<void>;
@@ -89,9 +89,10 @@ export function InventoryProvider({ children }: PropsWithChildren) {
         if (product) save({ ...product, inCart: !product.inCart });
       },
       finishShopping: () => {
+        const before = products.filter(product => product.inCart);
         const bought = finishShopping(products);
         save(bought);
-        return bought.length;
+        return { count: bought.length, undo: () => save(before) };
       },
       addMissingToMarket: ingredients => {
         const created: Product[] = [];

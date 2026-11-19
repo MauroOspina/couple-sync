@@ -17,7 +17,7 @@ Cada tarea de Cline va en una **conversación nueva** (botón +). Al terminar, r
 - [x] GitHub Pages: activo, las dos páginas cargan.
 - [ ] OAuth publicado, Play Console, prueba cerrada.
 
-**C · Cuando haya tiempo**: mejoras de la Fase 3 (prompts listos para Cline).
+**C · Siguiente en la app**: ver Fase 5 (cantidades, historial de compras) o Fase 4 (Premium, requiere build).
 
 ## Fase 2 · Requisitos de Google Play (tú)
 - [x] **Correo de contacto**: reemplaza `CORREO_DE_CONTACTO` en `docs/privacy.html` y `docs/delete-account.html` por un correo personal.
@@ -28,24 +28,8 @@ Cada tarea de Cline va en una **conversación nueva** (botón +). Al terminar, r
 - [ ] **Build de producción**: `npx eas-cli@latest build --profile production --platform android` → sube el `.aab` a *Prueba cerrada*.
 - [ ] **Prueba cerrada**: 12 testers durante 14 días seguidos. Luego, solicitar producción.
 
-## Fase 3 · Mejoras con Cline (prompts listos)
-**Pull to refresh**
-> En las pantallas `src/app/(tabs)/index.tsx`, `mercado.tsx`, `recetas.tsx` y `tareas.tsx`, agrega pull-to-refresh a la lista principal usando `RefreshControl` de react-native con el color `colors.primary` de `useAppTheme()`. Al refrescar llama a `refresh()` de `useInventory()` (despensa y mercado). En recetas y tareas no hace falta.
-
-**Deshacer al terminar el mercado**
-> En `src/app/(tabs)/mercado.tsx`, después de `finishShopping()` guarda los productos que cambiaron y muestra un `Alert` con botón "Deshacer" que los restaure con `updateProduct` de `useInventory()`.
-
-**Buscar recetas**
-> En `src/app/(tabs)/recetas.tsx` agrega un `TextField` con `icon="search"` en el `ScreenHeader` que filtre por título usando `normalizeText` de `src/domain/text.ts`.
-
-**Categoría al agregar desde el mercado**
-> En `src/app/(tabs)/mercado.tsx`, después de agregar un producto con la barra de abajo, si su categoría quedó en "Otros" abre `ProductEditSheet` con ese producto para que la persona elija la categoría.
-
-## Sugerencias de usuarios · nov 2026 (hecho en código)
-Historial de tareas, deshacer, quién la hizo, periodicidad libre e ideas de recetas con IA. El SQL que necesitan está en el paso A.1 de "Retomar aquí".
-
-Las ideas con IA no usan servidor ni llaves: arman una pregunta con la despensa y la abren en el Modo IA de Google
-(`google.com/search?udm=50&q=...`, URL no documentada) o en el menú de compartir (Gemini, ChatGPT...), con la cuenta de cada persona.
+## Fase 3 · Mejoras rápidas ✅ (18 nov 2026)
+Hechas: pull to refresh (Despensa y Mercado), deshacer al terminar el mercado, buscar recetas, elegir categoría si un producto nuevo del mercado cae en "Otros", compartir la lista del mercado (botón en el encabezado).
 
 ## Fase 4 · Monetización (cuando haya usuarios)
 1. **Premium con RevenueCat** (gratis hasta cierto nivel de ingresos). Requiere build nuevo.
@@ -60,4 +44,3 @@ Las ideas con IA no usan servidor ni llaves: arman una pregunta con la despensa 
 - Recordatorios de tareas (expo-notifications; requiere build).
 - Cantidades en productos ("2 litros").
 - Historial de compras y gasto mensual.
-- Compartir lista del mercado por WhatsApp (`Share` de react-native).

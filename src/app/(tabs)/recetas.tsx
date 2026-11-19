@@ -5,11 +5,11 @@ import { RecipeCard } from '@/components/recipes/recipe-card';
 import { RecipeDetailSheet } from '@/components/recipes/recipe-detail-sheet';
 import { RecipeEditorSheet } from '@/components/recipes/recipe-editor-sheet';
 import { RecipeIdeasSheet } from '@/components/recipes/recipe-ideas-sheet';
-import { Button, EmptyState, IconButton, LoadingView, Screen, ScreenHeader } from '@/components/ui';
+import { Button, EmptyState, IconButton, LoadingView, Screen, ScreenHeader, TextField } from '@/components/ui';
 import { APP_CONFIG } from '@/constants/config';
 import { spacing } from '@/constants/theme';
 import type { RecipeContent } from '@/domain/recipe-import';
-import { checkIngredients, summarizeAvailability, type Recipe } from '@/domain/recipes';
+import { checkIngredients, searchRecipes, summarizeAvailability, type Recipe } from '@/domain/recipes';
 import { makeStyles } from '@/hooks/use-app-theme';
 import { useInventory } from '@/providers/inventory-provider';
 import { useRecipes } from '@/providers/recipes-provider';
@@ -22,17 +22,18 @@ export default function RecipesScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editor, setEditor] = useState<{ recipe: Recipe | null; initial?: RecipeContent } | null>(null);
   const [ideasOpen, setIdeasOpen] = useState(false);
+  const [query, setQuery] = useState('');
 
   const entries = useMemo(
     () =>
-      recipes
+      searchRecipes(recipes, query)
         .map(recipe => {
           const availability = summarizeAvailability(checkIngredients(recipe, products));
           const ratio = availability.total ? availability.have / availability.total : 0;
           return { recipe, availability, ratio };
         })
         .sort((a, b) => b.ratio - a.ratio || a.recipe.title.localeCompare(b.recipe.title, 'es')),
-    [recipes, products],
+    [recipes, products, query],
   );
 
   if (!ready) return <LoadingView />;
@@ -62,26 +63,42 @@ export default function RecipesScreen() {
             <IconButton icon="sparkles" accessibilityLabel="Ideas de recetas con IA" onPress={() => setIdeasOpen(true)} />
             <IconButton icon="add" variant="primary" accessibilityLabel="Nueva receta" onPress={() => openNew()} />
           </View>
-        }
-      />
+        }>
+        {recipes.length > 0 ? (
+          <TextField
+            icon="search"
+            value={query}
+            onChangeText={setQuery}
+            onClear={() => setQuery('')}
+            placeholder="Buscar receta"
+            returnKeyType="search"
+            autoCorrect={false}
+          />
+        ) : null}
+      </ScreenHeader>
 
       <FlatList
         data={entries}
         keyExtractor={entry => entry.recipe.id}
         contentContainerStyle={styles.list}
+        keyboardShouldPersistTaps="handled"
         ItemSeparatorComponent={Separator}
         renderItem={({ item }) => (
           <RecipeCard recipe={item.recipe} availability={item.availability} onPress={() => setSelectedId(item.recipe.id)} />
         )}
         ListEmptyComponent={
-          <EmptyState
-            emoji="🍳"
-            title="Aún no hay recetas"
-            message="Guarden sus recetas favoritas y la app les dirá qué ingredientes tienen y cuáles faltan.">
-            <Button label="Crear receta" icon="add" onPress={() => openNew()} />
-            <Button label="Ideas con IA según mi despensa" icon="sparkles" variant="secondary" onPress={() => setIdeasOpen(true)} />
-            <Button label="Ver 3 recetas de ejemplo" icon="sparkles" variant="secondary" onPress={addSampleRecipes} />
-          </EmptyState>
+          recipes.length > 0 ? (
+            <EmptyState emoji="🔍" title="Sin resultados" message={`No hay recetas con "${query.trim()}".`} />
+          ) : (
+            <EmptyState
+              emoji="🍳"
+              title="Aún no hay recetas"
+              message="Guarden sus recetas favoritas y la app les dirá qué ingredientes tienen y cuáles faltan.">
+              <Button label="Crear receta" icon="add" onPress={() => openNew()} />
+              <Button label="Ideas con IA según mi despensa" icon="sparkles" variant="secondary" onPress={() => setIdeasOpen(true)} />
+              <Button label="Ver 3 recetas de ejemplo" icon="sparkles" variant="secondary" onPress={addSampleRecipes} />
+            </EmptyState>
+          )
         }
       />
 

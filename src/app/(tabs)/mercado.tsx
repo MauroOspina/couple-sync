@@ -1,19 +1,23 @@
 import { useMemo, useState } from 'react';
-import { Alert, SectionList, View } from 'react-native';
+import { Alert, RefreshControl, SectionList, Share, View } from 'react-native';
 
 import { AddItemBar } from '@/components/inventory/add-item-bar';
 import { ProductEditSheet } from '@/components/inventory/product-edit-sheet';
 import { ProductRow } from '@/components/inventory/product-row';
-import { AppText, Button, EmptyState, LoadingView, ProgressBar, Screen, ScreenHeader, SectionTitle } from '@/components/ui';
+import { AppText, Button, EmptyState, IconButton, LoadingView, ProgressBar, Screen, ScreenHeader, SectionTitle } from '@/components/ui';
+import { DEFAULT_CATEGORY } from '@/constants/catalog';
 import { spacing } from '@/constants/theme';
-import { groupByCategory, isNeeded, type Product } from '@/domain/inventory';
-import { makeStyles } from '@/hooks/use-app-theme';
+import { formatShoppingList, groupByCategory, isNeeded, type Product } from '@/domain/inventory';
+import { makeStyles, useAppTheme } from '@/hooks/use-app-theme';
+import { useRefresh } from '@/hooks/use-refresh';
 import { useInventory } from '@/providers/inventory-provider';
 
 /** Lista del mercado: lo que está en "Queda poco" o "Falta", agrupado por categoría. */
 export default function MarketScreen() {
   const styles = useStyles();
-  const { products, ready, toggleCart, finishShopping, addProduct } = useInventory();
+  const { colors } = useAppTheme();
+  const { products, ready, toggleCart, finishShopping, addProduct, refresh } = useInventory();
+  const { refreshing, onRefresh } = useRefresh(refresh);
   const [editing, setEditing] = useState<Product | null>(null);
 
   const needed = useMemo(() => products.filter(isNeeded), [products]);
@@ -32,18 +36,34 @@ export default function MarketScreen() {
       {
         text: 'Terminar',
         onPress: () => {
-          const bought = finishShopping();
-          Alert.alert('¡Mercado listo! 🛒', `La despensa quedó al día con ${bought} ${bought === 1 ? 'producto' : 'productos'}.`);
+          const { count, undo } = finishShopping();
+          Alert.alert('¡Mercado listo! 🛒', `La despensa quedó al día con ${count} ${count === 1 ? 'producto' : 'productos'}.`, [
+            { text: 'Deshacer', style: 'cancel', onPress: undo },
+            { text: 'Listo' },
+          ]);
         },
       },
     ]);
+  };
+
+  const shareList = () => {
+    void Share.share({ message: formatShoppingList(products) });
+  };
+
+  // Si el producto nuevo no encaja en ninguna categoría, se abre el editor para elegirla.
+  const add = (name: string) => {
+    const product = addProduct(name, undefined, 'out');
+    if (product?.category === DEFAULT_CATEGORY) setEditing(product);
   };
 
   return (
     <Screen>
       <ScreenHeader
         title="Mercado"
-        subtitle={needed.length ? `${needed.length} por comprar · ${inCart} en el carrito` : 'No falta nada'}>
+        subtitle={needed.length ? `${needed.length} por comprar · ${inCart} en el carrito` : 'No falta nada'}
+        right={
+          needed.length > 0 ? <IconButton icon="share" accessibilityLabel="Compartir la lista del mercado" onPress={shareList} /> : null
+        }>
         {needed.length > 0 ? <ProgressBar value={inCart / needed.length} /> : null}
       </ScreenHeader>
 
@@ -53,6 +73,7 @@ export default function MarketScreen() {
         contentContainerStyle={styles.list}
         stickySectionHeadersEnabled={false}
         keyboardShouldPersistTaps="handled"
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />}
         ItemSeparatorComponent={Separator}
         renderSectionHeader={({ section }) => (
           <SectionTitle
@@ -81,7 +102,7 @@ export default function MarketScreen() {
           <Button label={`Terminar mercado · ${inCart}`} icon="check" onPress={finish} />
         </View>
       ) : null}
-      <AddItemBar placeholder="Agregar algo que falta..." onSubmit={name => addProduct(name, undefined, 'out')} />
+      <AddItemBar placeholder="Agregar algo que falta..." onSubmit={add} />
 
       <ProductEditSheet product={editing} onClose={() => setEditing(null)} />
     </Screen>

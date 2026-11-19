@@ -17,7 +17,14 @@ export interface Recipe extends SyncedItem {
 export const RECIPE_EMOJIS = ['🍲', '🍝', '🥗', '🍳', '🥞', '🌮', '🍛', '🥘', '🍗', '🐟', '🥪', '🍰'];
 
 /** have = hay · low = queda poco · missing = está en la despensa pero falta · unknown = no está en la despensa */
-export type IngredientState = 'have' | 'low' | 'missing' | 'unknown';
+/** Filtra por título sin importar tildes ni mayúsculas. */
+export function searchRecipes<T extends Pick<Recipe, 'title'>>(recipes: T[], query: string): T[] {
+  const needle = normalizeText(query);
+  if (!needle) return recipes;
+  return recipes.filter(recipe => normalizeText(recipe.title).includes(needle));
+}
+
+export type IngredientState ='have' | 'low' | 'missing' | 'unknown';
 
 export interface IngredientCheck {
   name: string;

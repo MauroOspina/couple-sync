@@ -71,6 +71,7 @@ export const productsAdapter: CollectionAdapter<Product> = {
     category: asString(row.category, DEFAULT_CATEGORY) || DEFAULT_CATEGORY,
     status: toStockStatus(row.status),
     inCart: Boolean(row.in_cart),
+    onList: typeof row.on_list === 'boolean' ? row.on_list : null,
     updatedAt: asNullableString(row.updated_at),
   }),
   toRow: (product, householdId) => ({
@@ -80,6 +81,7 @@ export const productsAdapter: CollectionAdapter<Product> = {
     category: product.category,
     status: product.status,
     in_cart: Boolean(product.inCart),
+    on_list: product.onList ?? null,
     updated_at: product.updatedAt ?? new Date().toISOString(),
   }),
   ...cache,

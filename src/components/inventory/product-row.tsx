@@ -9,8 +9,8 @@ import { makeStyles, useAppTheme } from '@/hooks/use-app-theme';
 
 interface ProductRowProps {
   product: Product;
-  /** pantry: tocar cambia el estado · market: tocar lo mete/saca del carrito */
-  mode: 'pantry' | 'market';
+  /** pantry: tocar cambia el estado · market: tocar lo mete/saca del carrito · offList: tocar lo agrega a la lista */
+  mode: 'pantry' | 'market' | 'offList';
   onPress: () => void;
   onEdit: () => void;
   showCategory?: boolean;
@@ -25,8 +25,12 @@ export function ProductRow({ product, mode, onPress, onEdit, showCategory = fals
   const label =
     mode === 'market'
       ? `${product.name}, ${inCart ? 'en el carrito' : 'por comprar'}`
-      : `${product.name}, ${STATUS_LABELS[product.status]}`;
-  const hint = mode === 'market' ? 'Toca para marcarlo en el carrito' : 'Toca para cambiar el estado';
+      : `${product.name}, ${STATUS_LABELS[product.status]}${mode === 'offList' ? ', fuera de la lista' : ''}`;
+  const hint = {
+    market: 'Toca para marcarlo en el carrito',
+    offList: 'Toca para agregarlo a la lista del mercado',
+    pantry: 'Toca para cambiar el estado',
+  }[mode];
 
   return (
     <View style={[styles.row, mode === 'pantry' && { borderLeftColor: accent }, inCart && styles.rowInCart]}>
@@ -41,6 +45,7 @@ export function ProductRow({ product, mode, onPress, onEdit, showCategory = fals
         {mode === 'market' ? (
           <Icon name={inCart ? 'checkCircle' : 'circle'} size={26} color={inCart ? theme.colors.primary : theme.colors.textSubtle} />
         ) : null}
+        {mode === 'offList' ? <Icon name="cartAdd" size={24} color={theme.colors.primary} /> : null}
         <AppText style={styles.emoji}>{categoryEmoji(product.category)}</AppText>
         <View style={styles.texts}>
           <AppText variant="bodyStrong" numberOfLines={2} style={inCart && styles.nameInCart}>

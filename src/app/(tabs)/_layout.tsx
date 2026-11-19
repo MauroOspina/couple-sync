@@ -9,17 +9,20 @@ import { fonts } from '@/constants/theme';
 import { useAppTheme } from '@/hooks/use-app-theme';
 import { ChoresProvider, useChores } from '@/providers/chores-provider';
 import { InventoryProvider, useInventory } from '@/providers/inventory-provider';
+import { PurchasesProvider } from '@/providers/purchases-provider';
 import { RecipesProvider, useRecipes } from '@/providers/recipes-provider';
 
 export default function TabsLayout() {
   return (
     <InventoryProvider>
-      <ChoresProvider>
-        <RecipesProvider>
-          <SharedTextReceiver />
-          <Tabs />
-        </RecipesProvider>
-      </ChoresProvider>
+      <PurchasesProvider>
+        <ChoresProvider>
+          <RecipesProvider>
+            <SharedTextReceiver />
+            <Tabs />
+          </RecipesProvider>
+        </ChoresProvider>
+      </PurchasesProvider>
     </InventoryProvider>
   );
 }
@@ -55,7 +58,7 @@ function SharedTextReceiver() {
 /** Pestañas nativas. Íconos: `md` = Material Symbols (Android), `sf` = SF Symbols (iOS). */
 function Tabs() {
   const { colors } = useAppTheme();
-  const { neededCount } = useInventory();
+  const { toBuyCount } = useInventory();
   const { dueCount } = useChores();
 
   return (
@@ -79,7 +82,7 @@ function Tabs() {
       <NativeTabs.Trigger name="mercado">
         <NativeTabs.Trigger.Label>Mercado</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="cart" md="shopping_cart" />
-        <NativeTabs.Trigger.Badge hidden={neededCount === 0}>{String(neededCount)}</NativeTabs.Trigger.Badge>
+        <NativeTabs.Trigger.Badge hidden={toBuyCount === 0}>{String(toBuyCount)}</NativeTabs.Trigger.Badge>
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="recetas">

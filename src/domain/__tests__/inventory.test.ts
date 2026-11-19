@@ -5,7 +5,10 @@ import {
   finishShopping,
   formatShoppingList,
   guessCategory,
+  isOnList,
+  splitMarket,
   summarizeCategories,
+  withStatus,
   type Product,
 } from '@/domain/inventory';
 
@@ -44,7 +47,34 @@ describe('inventory', () => {
 
   it('al terminar el mercado solo cambia lo del carrito', () => {
     const list = [product('a', 'Leche', 'out', { inCart: true }), product('b', 'Pan', 'low')];
-    expect(finishShopping(list)).toEqual([{ ...list[0], status: 'ok', inCart: false }]);
+    expect(finishShopping(list)).toEqual([{ ...list[0], status: 'ok', inCart: false, onList: null }]);
+  });
+
+  it('solo "Falta" entra sola a la lista; "Queda poco" y lo quitado a mano quedan fuera', () => {
+    expect(isOnList(product('a', 'Leche', 'out'))).toBe(true);
+    expect(isOnList(product('b', 'Pan', 'low'))).toBe(false);
+    expect(isOnList(product('c', 'Sal', 'out', { onList: false }))).toBe(false);
+    expect(isOnList(product('d', 'Café', 'low', { onList: true }))).toBe(true);
+    expect(isOnList(product('e', 'Arroz', 'ok', { onList: true }))).toBe(false);
+  });
+
+  it('al cambiar el estado se olvida la decisión de la lista', () => {
+    const removed = product('a', 'Sal', 'out', { onList: false, inCart: true });
+    expect(withStatus(removed, 'out')).toBe(removed);
+    expect(withStatus(removed, 'low')).toEqual({ ...removed, status: 'low', onList: null, inCart: false });
+    expect(withStatus(removed, 'ok')).toEqual({ ...removed, status: 'ok', onList: null, inCart: false });
+  });
+
+  it('separa el mercado en la lista y lo que queda fuera', () => {
+    const list = [
+      product('1', 'Leche', 'out'),
+      product('2', 'Pan', 'low'),
+      product('3', 'Arroz', 'ok'),
+      product('4', 'Azúcar', 'out', { onList: false }),
+    ];
+    const { listed, offList } = splitMarket(list);
+    expect(listed.map(item => item.name)).toEqual(['Leche']);
+    expect(offList.map(item => item.name)).toEqual(['Azúcar', 'Pan']);
   });
 
   it('resume categorías con productos', () => {
@@ -69,7 +99,8 @@ describe('inventory', () => {
 
   it('arma la lista del mercado para compartir, por categoría y marcando el carrito', () => {
     const list = [
-      product('1', 'Pan', 'low', { category: 'Panadería y Arepas' }),
+      product('1', 'Pan', 'low', { category: 'Panadería y Arepas', onList: true }),
+      product('6', 'Queso', 'low', { category: 'Lácteos y Huevos' }),
       product('2', 'Leche', 'out', { category: 'Lácteos y Huevos', inCart: true }),
       product('3', 'Huevos', 'out', { category: 'Lácteos y Huevos' }),
       product('4', 'Arroz', 'ok', { category: 'Granos' }),

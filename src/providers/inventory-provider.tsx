@@ -4,8 +4,10 @@ import {
   finishShopping,
   findProduct,
   guessCategory,
-  isNeeded,
+  isInCart,
+  isOnList,
   NEXT_STATUS,
+  withStatus,
   type Product,
   type StockStatus,
 } from '@/domain/inventory';
@@ -19,8 +21,8 @@ interface InventoryContextValue {
   products: Product[];
   ready: boolean;
   pendingCount: number;
-  /** Productos en "Queda poco" o "Falta" (la lista del mercado). */
-  neededCount: number;
+  /** Productos en la lista del mercado. */
+  toBuyCount: number;
   /** Si ya existe un producto con ese nombre, lo devuelve en vez de duplicarlo. */
   addProduct: (name: string, category?: string, status?: StockStatus) => Product | null;
   updateProduct: (product: Product) => void;
@@ -28,8 +30,10 @@ interface InventoryContextValue {
   cycleStatus: (id: string) => void;
   setStatus: (id: string, status: StockStatus) => void;
   toggleCart: (id: string) => void;
-  /** Lo del carrito pasa a "Hay". Devuelve cuántos se compraron y cómo dejarlos como estaban. */
-  finishShopping: () => { count: number; undo: () => void };
+  /** Mete o saca un producto de la lista del mercado sin cambiar su estado en la despensa. */
+  setOnList: (id: string, onList: boolean) => void;
+  /** Lo del carrito pasa a "Hay". Devuelve qué se compró y cómo dejarlo como estaba. */
+  finishShopping: () => { items: string[]; undo: () => void };
   /** Crea en "Falta" los ingredientes que no están en la despensa. Devuelve cuántos agregó. */
   addMissingToMarket: (ingredients: string[]) => number;
   refresh: () => Promise<void>;
@@ -59,13 +63,17 @@ export function InventoryProvider({ children }: PropsWithChildren) {
       products,
       ready,
       pendingCount,
-      neededCount: products.filter(isNeeded).length,
+      toBuyCount: products.filter(isOnList).length,
       addProduct: (rawName, category, status = 'ok') => {
         const name = capitalize(rawName);
         if (!name) return null;
         const duplicate = products.find(product => matchKey(product.name) === matchKey(name));
         if (duplicate) {
-          if (status !== 'ok' && duplicate.status !== status) save({ ...duplicate, status });
+          // Si lo vuelven a pedir, vuelve a la lista aunque antes lo hubieran quitado.
+          if (status !== 'ok') {
+            const updated = { ...withStatus(duplicate, status), onList: null };
+            if (updated.status !== duplicate.status || (duplicate.onList ?? null) !== null) save(updated);
+          }
           return duplicate;
         }
         const product = createProduct(name, category, status);
@@ -76,23 +84,25 @@ export function InventoryProvider({ children }: PropsWithChildren) {
       deleteProduct: id => remove(id),
       cycleStatus: id => {
         const product = byId(id);
-        if (!product) return;
-        const status = NEXT_STATUS[product.status];
-        save({ ...product, status, inCart: status === 'ok' ? false : product.inCart });
+        if (product) save(withStatus(product, NEXT_STATUS[product.status]));
       },
       setStatus: (id, status) => {
         const product = byId(id);
-        if (product && product.status !== status) save({ ...product, status, inCart: status === 'ok' ? false : product.inCart });
+        if (product && product.status !== status) save(withStatus(product, status));
       },
       toggleCart: id => {
         const product = byId(id);
         if (product) save({ ...product, inCart: !product.inCart });
       },
+      setOnList: (id, onList) => {
+        const product = byId(id);
+        if (product) save({ ...product, onList, inCart: onList ? product.inCart : false });
+      },
       finishShopping: () => {
-        const before = products.filter(product => product.inCart);
+        const before = products.filter(isInCart);
         const bought = finishShopping(products);
         save(bought);
-        return { count: bought.length, undo: () => save(before) };
+        return { items: bought.map(product => product.name), undo: () => save(before) };
       },
       addMissingToMarket: ingredients => {
         const created: Product[] = [];

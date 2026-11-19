@@ -22,7 +22,7 @@ export default function PantryScreen() {
   const { colors } = useAppTheme();
   const router = useRouter();
   const { household, isGuest } = useSession();
-  const { products, ready, pendingCount, neededCount, cycleStatus, addProduct, refresh } = useInventory();
+  const { products, ready, pendingCount, toBuyCount, cycleStatus, addProduct, refresh } = useInventory();
   const { refreshing, onRefresh } = useRefresh(refresh);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<string | null>(null);
@@ -131,14 +131,14 @@ export default function PantryScreen() {
         />
       ) : (
         <ScrollView contentContainerStyle={styles.content} refreshControl={refreshControl}>
-          {neededCount > 0 ? (
-            <Card style={styles.summary} onPress={() => router.navigate('/mercado')} accessibilityLabel={`${neededCount} productos por comprar. Ir al mercado`}>
+          {toBuyCount > 0 ? (
+            <Card style={styles.summary} onPress={() => router.navigate('/mercado')} accessibilityLabel={`${toBuyCount} productos por comprar. Ir al mercado`}>
               <View style={styles.summaryIcon}>
                 <Icon name="cart" size={22} color={colors.accent} />
               </View>
               <View style={styles.summaryText}>
                 <AppText variant="bodyStrong">
-                  {neededCount} {neededCount === 1 ? 'producto' : 'productos'} por comprar
+                  {toBuyCount} {toBuyCount === 1 ? 'producto' : 'productos'} por comprar
                 </AppText>
                 <AppText variant="caption" tone="muted">
                   Toca para ver la lista del mercado

@@ -10,6 +10,8 @@ export interface Product extends SyncedItem {
   status: StockStatus;
   /** Ya está en el carrito (solo importa mientras se hace el mercado). */
   inCart?: boolean;
+  /** ¿Va en la lista del mercado? null = según el estado (ver `isOnList`). */
+  onList?: boolean | null;
 }
 
 export const NEXT_STATUS: Record<StockStatus, StockStatus> = { ok: 'low', low: 'out', out: 'ok' };
@@ -18,7 +20,34 @@ export function toStockStatus(value: unknown): StockStatus {
   return value === 'low' || value === 'out' ? value : 'ok';
 }
 
+/** Queda poco o Falta (lo que muestra la Despensa en amarillo/rojo). */
 export const isNeeded = (product: Product) => product.status !== 'ok';
+
+/**
+ * ¿Está en la lista del mercado? "Falta" entra sola y "Queda poco" no, salvo que la persona
+ * lo haya decidido a mano (`onList`). Lo que "Hay" nunca está en la lista.
+ */
+export function isOnList(product: Product): boolean {
+  if (product.status === 'ok') return false;
+  return product.onList ?? product.status === 'out';
+}
+
+/** Cambia el estado. Si cambia, se olvida la decisión de la lista y sale del carrito. */
+export function withStatus(product: Product, status: StockStatus): Product {
+  if (product.status === status) return product;
+  return { ...product, status, onList: null, inCart: false };
+}
+
+/** Mercado: lo que está en la lista y lo que queda fuera (Queda poco, o quitado a mano). */
+export function splitMarket(products: Product[]): { listed: Product[]; offList: Product[] } {
+  const listed: Product[] = [];
+  const offList: Product[] = [];
+  for (const product of products) {
+    if (isOnList(product)) listed.push(product);
+    else if (isNeeded(product)) offList.push(product);
+  }
+  return { listed, offList: sortByName(offList) };
+}
 
 export function categoryEmoji(category: string): string {
   return CATEGORIES[category] ?? CATEGORIES[DEFAULT_CATEGORY];
@@ -73,12 +102,17 @@ export function groupByCategory(products: Product[]): CategoryGroup[] {
 
 /** Productos que estaban en el carrito, ya comprados: vuelven a "Hay". Devuelve solo los que cambian. */
 export function finishShopping(products: Product[]): Product[] {
-  return products.filter(product => product.inCart).map(product => ({ ...product, status: 'ok' as const, inCart: false }));
+  return products.filter(isInCart).map(product => withStatus(product, 'ok'));
 }
 
-/** Texto de la lista del mercado para compartir (WhatsApp...), agrupado por categoría. Vacío si no falta nada. */
+/** En el carrito y en la lista (lo que se ve marcado en el Mercado). */
+export function isInCart(product: Product): boolean {
+  return Boolean(product.inCart) && isOnList(product);
+}
+
+/** Texto de la lista del mercado para compartir (WhatsApp...), agrupado por categoría. Vacío si no hay nada en la lista. */
 export function formatShoppingList(products: Product[]): string {
-  const groups = groupByCategory(products.filter(isNeeded));
+  const groups = groupByCategory(products.filter(isOnList));
   if (!groups.length) return '';
   const sections = groups.map(group =>
     [`${group.emoji} ${group.category}`, ...group.items.map(item => `${item.inCart ? '✅' : '•'} ${item.name}`)].join('\n'),

@@ -5,7 +5,7 @@ import { statusColors } from '@/components/inventory/status-pill';
 import { AppText, Button, Chip, Sheet, TextField } from '@/components/ui';
 import { CATEGORIES, STATUS_LABELS } from '@/constants/catalog';
 import { radius, spacing } from '@/constants/theme';
-import type { Product, StockStatus } from '@/domain/inventory';
+import { isNeeded, isOnList, withStatus, type Product, type StockStatus } from '@/domain/inventory';
 import { makeStyles, useAppTheme } from '@/hooks/use-app-theme';
 import { useInventory } from '@/providers/inventory-provider';
 
@@ -26,7 +26,8 @@ export function ProductEditSheet({ product, onClose }: ProductEditSheetProps) {
 function ProductForm({ product, onClose }: { product: Product; onClose: () => void }) {
   const styles = useStyles();
   const theme = useAppTheme();
-  const { updateProduct, deleteProduct } = useInventory();
+  const { updateProduct, deleteProduct, setOnList } = useInventory();
+  const onList = isOnList(product);
   const [name, setName] = useState(product.name);
   const [category, setCategory] = useState(product.category);
   const [status, setStatus] = useState<StockStatus>(product.status);
@@ -37,7 +38,13 @@ function ProductForm({ product, onClose }: { product: Product; onClose: () => vo
       Alert.alert('Falta el nombre', 'Escribe un nombre para el producto.');
       return;
     }
-    updateProduct({ ...product, name: clean, category, status, inCart: status === 'ok' ? false : product.inCart });
+    updateProduct({ ...withStatus(product, status), name: clean, category });
+    onClose();
+  };
+
+  // Decidir si se compra no cambia el estado: puede faltar y no querer comprarlo esta vez.
+  const toggleList = () => {
+    setOnList(product.id, !onList);
     onClose();
   };
 
@@ -96,6 +103,14 @@ function ProductForm({ product, onClose }: { product: Product; onClose: () => vo
 
       <View style={styles.actions}>
         <Button label="Guardar cambios" icon="check" onPress={save} />
+        {isNeeded(product) ? (
+          <Button
+            label={onList ? 'No comprar esta vez' : 'Agregar a la lista del mercado'}
+            icon={onList ? 'remove' : 'cartAdd'}
+            variant="secondary"
+            onPress={toggleList}
+          />
+        ) : null}
         <Button label="Eliminar producto" icon="delete" variant="danger" onPress={confirmDelete} />
       </View>
     </>

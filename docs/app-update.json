@@ -1,0 +1,12 @@
+{
+  "production": {
+    "version": "1.1.0",
+    "url": "",
+    "notes": ""
+  },
+  "preview": {
+    "version": "1.1.0",
+    "url": "",
+    "notes": ""
+  }
+}

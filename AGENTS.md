@@ -42,3 +42,4 @@ Base de datos: `supabase/schema.sql` (idempotente). Páginas legales: `docs/` (G
 ## Ramas y publicación
 - `git push origin <rama>:preview` → OTA al canal preview (APK de prueba).
 - `git push origin main` → OTA a producción. El workflow corre `npm run check` antes de publicar.
+- **APK nuevo (build nativo)**: después del `eas build`, pon en `docs/app-update.json` la `version` nueva y el link `.apk` del canal (`production` o `preview`; el link sale al terminar el build en expo.dev) y haz push a `main`. Las apps con una versión anterior muestran "Hay una versión nueva" y descargan el APK, que se instala encima sin desinstalar.

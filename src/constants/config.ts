@@ -8,6 +8,8 @@ export const APP_CONFIG = {
   links: {
     privacy: 'https://mauroospina.github.io/couple-sync/privacy.html',
     deleteAccount: 'https://mauroospina.github.io/couple-sync/delete-account.html',
+    /** Último APK de cada canal: la app avisa si hay uno más nuevo. Ver `docs/app-update.json`. */
+    appUpdate: 'https://mauroospina.github.io/couple-sync/app-update.json',
   },
   premium: {
     /**

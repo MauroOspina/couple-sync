@@ -10,7 +10,7 @@ Cada tarea de Cline va en una **conversación nueva** (botón +). Al terminar, r
 2. [x] **Preview**: `git push origin main:preview` + build de prueba (`production-apk` o preview) e instalarlo.
 3. [x] **Probar en el teléfono**: las 5 pestañas, sincronización entre dos teléfonos, compartir una receta desde Gemini → Nest, teclado en Android (que no tape los campos).
 4. [x] **Eliminar cuenta** con una cuenta de Google de prueba (no la tuya): Hogar → Eliminar mi cuenta. Puede fallar por permisos sobre `auth.users`.
-5. [ ] **Producción**: `git push origin main`.
+5. [x] **Producción**: `git push origin main`.
 
 **B · Bloqueos de Google Play** (ver Fase 2)
 - [ ] Correo de contacto en `docs/` (también corregir "Couple Sync" en el asunto del mailto de `docs/delete-account.html`).

@@ -7,9 +7,9 @@ App Expo (SDK 57) + Expo Router + Supabase para organizar el hogar (pareja, fami
 npm run check               # lint + tipos + tests: córrelo SIEMPRE antes de terminar
 npx expo start              # servidor de desarrollo (Expo Go SDK 57)
 npx expo install <paquete>  # nunca npm install <paquete>: resuelve versiones compatibles
-npm run sugerencias         # (lo corre la persona) baja el buzón nuevo a feedback/sugerencias.md
+npm run sugerencias         # baja el buzón nuevo a feedback/sugerencias.md (solo lee)
 ```
-Para trabajar sugerencias: lee `feedback/sugerencias.md` (no corras el script tú). Ese archivo no se sube a git.
+Para trabajar sugerencias: corre `npm run sugerencias` y lee `feedback/sugerencias.md`. Ese archivo no se sube a git.
 Si agregas o renombras una ruta en `src/app/`, corre `npx expo start` una vez: regenera los tipos de rutas.
 
 ## Mapa del código (`src/`)
@@ -36,7 +36,8 @@ Base de datos: `supabase/schema.sql` (idempotente). Páginas legales: `docs/` (G
 - La app se llama **Nest**, pero `scheme: couplesync` (login de Google), `package: com.couplesync.app` (Play) y `slug: couple-app` (EAS) conservan el nombre viejo a propósito: no los cambies.
 - Ícono y splash: ver `assets/brand/README.md`.
 - "Compartir → Nest" usa `expo-share-intent` (nativo). En Expo Go no recibe nada pero la app abre igual; para probarlo hace falta un APK.
-- No hagas `git push` ni ejecutes nada contra Supabase: eso lo hace la persona.
+- `git push origin main` y `git push origin main:preview`: puedes hacerlos cuando la persona lo pida, siempre después de que `npm run check` pase. Nada de `--force` ni de otras ramas.
+- No ejecutes nada que escriba en Supabase (SQL, migraciones): eso lo hace la persona. Leer el buzón con `npm run sugerencias` sí puedes.
 
 ## Ramas y publicación
 - `git push origin <rama>:preview` → OTA al canal preview (APK de prueba).

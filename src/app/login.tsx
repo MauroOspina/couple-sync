@@ -3,10 +3,11 @@ import { useState } from 'react';
 import { Alert, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppText, Button, Icon, type IconName } from '@/components/ui';
+import { AppText, Banner, Button, Icon, type IconName } from '@/components/ui';
 import { APP_CONFIG } from '@/constants/config';
 import { radius, spacing } from '@/constants/theme';
 import { makeStyles, useAppTheme } from '@/hooks/use-app-theme';
+import { usePendingInvite } from '@/hooks/use-pending-invite';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { useSession } from '@/providers/session-provider';
 
@@ -23,6 +24,7 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const { status, signInWithGoogle, continueAsGuest } = useSession();
   const [busy, setBusy] = useState(false);
+  const invite = usePendingInvite();
 
   const login = async () => {
     try {
@@ -65,6 +67,9 @@ export default function LoginScreen() {
       </View>
 
       <View style={styles.actions}>
+        {invite && isSupabaseConfigured ? (
+          <Banner icon="heart" tone="info" message="Te invitaron a un hogar. Inicia sesión con Google para unirte." />
+        ) : null}
         {isSupabaseConfigured ? (
           <Button label="Continuar con Google" onPress={login} loading={busy || status === 'loading'} />
         ) : null}

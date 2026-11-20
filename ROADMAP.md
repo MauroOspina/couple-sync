@@ -17,7 +17,7 @@ Cada tarea de Cline va en una **conversación nueva** (botón +). Al terminar, r
 - [x] GitHub Pages: activo, las dos páginas cargan.
 - [ ] OAuth publicado, Play Console, prueba cerrada.
 
-**C · Siguiente en la app**: ver Fase 5 (cantidades, historial de compras) o Fase 4 (Premium, requiere build).
+**C · Siguiente en la app**: **Fase 6** (invitar con link → recordatorios + widget). Ideas pendientes de hablar: cantidades, menú de la semana, gastos compartidos, varias listas, vencimientos (Fase 5) y Premium (Fase 4).
 
 ## Fase 2 · Requisitos de Google Play (tú)
 - [x] **Correo de contacto**: reemplaza `CORREO_DE_CONTACTO` en `docs/privacy.html` y `docs/delete-account.html` por un correo personal.
@@ -33,7 +33,41 @@ Hechas: pull to refresh (Despensa y Mercado), deshacer al terminar el mercado, b
 
 ## Lista del mercado separada del estado (19 nov 2026)
 - Solo "Falta" entra sola a la lista. "Queda poco" y lo que se quita con "No comprar esta vez" quedan en "Fuera de la lista" (al final del Mercado). Al cambiar el estado se olvida esa decisión. Columna `products.on_list`.
-- **Antes de publicar**: correr `supabase/schema.sql` (si la app sale antes, los productos dejan de sincronizar).
+- [x] `supabase/schema.sql` corrido con `on_list` (20 nov 2026).
+
+## Fase 6 · Invitar con link, recordatorios y widget (plan del 20 nov 2026)
+Orden: **6.1 sale por OTA** (no toca código nativo). **6.2 y 6.3 van juntas en un solo build** con `version` 1.2.0 (y luego `docs/app-update.json`). Cada tarea en una conversación nueva de Cline.
+
+### 6.1 · Invitar con link (solo JS → OTA) · hecho 20 nov, falta probar en el teléfono
+El esquema `couplesync://` ya está en el APK 1.1.0, así que basta JS + una página en `docs/`. Implementado: `domain/invite.ts`, `services/pending-invite.ts`, `app/+native-intent.tsx`, `hooks/use-invite-while-ready.ts`, `lib/share-invite.ts`, `docs/join.html`. Si Nest no está instalada, Chrome vuelve a `join.html?sin-app` y ofrece el APK de `app-update.json` (production) si tiene link.
+- **`docs/join.html`**: lee el código de `location.hash` (`join.html#HOGAR-XXXXXXXX`; el hash nunca llega al servidor). Valida con `^HOGAR-[2-9A-HJ-NP-Z]{8}$`; si no cuadra, muestra "Link inválido". Muestra el código grande + botón copiar + botón **"Abrir en Nest"** con `intent://join?code=CODIGO#Intent;scheme=couplesync;package=com.couplesync.app;S.browser_fallback_url=<index.html codificado>;end`. Debe ser un botón (Chrome bloquea `intent://` sin toque). Debajo: "¿No tienes Nest? Instálala, inicia sesión y escribe el código". Mismo `style.css`.
+- **`src/domain/invite.ts`** + test: `parseInviteCode(urlOrPath): string | null` (acepta `couplesync://join?code=...`, `/join?code=...`, mayúsculas/minúsculas, espacios) y `inviteLink(code)`.
+- **`src/app/+native-intent.tsx`**: `redirectSystemPath({ path })` → si `parseInviteCode(path)` da código, lo guarda (`services/pending-invite.ts`, en AsyncStorage para que sobreviva al login) y devuelve `'/'`. Cualquier otra ruta se devuelve igual (no romper el login de Google ni "Compartir → Nest").
+- **`setup.tsx`**: al abrir, si hay código pendiente, prellena el campo y muestra un `Banner` "Te invitaron a un hogar". Se borra al unirse.
+- **Ya en un hogar** (`status === 'ready'`): si llega un código distinto al del hogar actual → `Alert` "Ya estás en «X». Para unirte a otro, primero sal en Hogar." y se borra. Si es el mismo, se ignora. Invitado (`isGuest`): pedir iniciar sesión.
+- **Compartir**: `APP_CONFIG.links.join`; el mensaje de `hogar.tsx` (y el `Alert` de `setup.tsx` al crear) incluye el link **y** el código.
+- **Probar**: en un APK (no Expo Go), con `adb shell am start -a android.intent.action.VIEW -d "couplesync://join?code=HOGAR-..."` y abriendo el link desde WhatsApp.
+
+### 6.2 · Recordatorios de tareas (nativo → build)
+Notificaciones **locales**: el teléfono las programa a partir de las tareas; no hace falta servidor ni Firebase.
+- `npx expo install expo-notifications` + plugin en `app.json` (ícono monocromo, color de `theme`).
+- **`src/domain/reminders.ts`** + test: `planReminders(chores, myUserId, today, { hour })` → `{ id, choreId, title, body, date }[]`. Solo tareas sin hacer, asignadas a mí o sin asignar. Expande las recurrentes con `nextDueDate` hasta 14 días. Vencidas: un aviso hoy si la hora aún no pasó. Máximo 40.
+- **Ajustes por teléfono** (AsyncStorage): activado y hora (por defecto 8:00). Tarjeta "Recordatorios" en Hogar: interruptor + chips de hora (7, 8, 9, 18, 20). Al activar, pedir permiso (Android 13+); si lo niega, explicarlo y dejarlo apagado.
+- **Programar**: hook montado en `(tabs)/_layout.tsx`. Cuando cambian tareas o ajustes (debounce ~1 s): `cancelAllScheduledNotificationsAsync` + programar cada uno con disparador de fecha en el canal "recordatorios".
+- **Tocar la notificación** abre la pestaña Tareas.
+- Limitaciones aceptadas: si la pareja completa o crea una tarea con mi app cerrada, me entero al abrirla. Eso lo resuelve 6.4.
+
+### 6.3 · Widget del mercado (nativo → build)
+Con `react-native-android-widget` (maduro). `expo-widgets` de Expo en SDK 57 aún es experimental en Android.
+- `npx expo install react-native-android-widget` + plugin en `app.json`: widget `Mercado`, tamaño 3×2 (redimensionable), `updatePeriodMillis: 1800000`, descripción e imagen de vista previa.
+- **Entrada**: crear `index.ts` que importe `expo-router/entry` y llame `registerWidgetTaskHandler`, y cambiar `main` en `package.json`.
+- **`src/widgets/market-widget.tsx`**: primitivas de la librería (`FlexWidget`, `TextWidget`), no componentes RN: aquí no aplican `AppText`/`makeStyles`, pero los colores salen de `theme.ts`. Muestra el nombre del hogar, hasta 8 productos de la lista que no estén en el carrito y "y N más". Tocar abre `couplesync:///mercado`.
+- **Datos**: el handler lee la caché local de productos (la misma de `useSyncedCollection`; exponer un lector en `services/`). `widgetMarketItems(products)` en `domain/` + test, reutilizando `splitMarket`.
+- **Actualizar**: `InventoryProvider` llama `requestWidgetUpdate` cuando cambian los productos (debounce, solo Android, en try/catch porque en Expo Go no existe).
+- Limitaciones v1: solo lectura (no se marca desde el widget) y muestra lo último que vio el teléfono; lo que cambie la pareja con mi app cerrada aparece al abrirla.
+
+### 6.4 · Después: avisos de lo que hace el otro (push)
+"Tu pareja agregó 3 cosas al mercado", "te asignaron una tarea", widget al día con la app cerrada. Requiere Firebase (FCM) + credencial en EAS, tabla `push_tokens` + función de Supabase que envíe por Expo Push. Hablarlo antes de empezar.
 
 ## Fase 4 · Monetización (cuando haya usuarios)
 1. **Premium con RevenueCat** (gratis hasta cierto nivel de ingresos). Requiere build nuevo.

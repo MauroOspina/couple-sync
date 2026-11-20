@@ -2,13 +2,14 @@ import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
 import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
-import { Alert, ScrollView, Share, View } from 'react-native';
+import { Alert, ScrollView, View } from 'react-native';
 
 import { SuggestionSheet } from '@/components/household/suggestion-sheet';
 import { AppText, Avatar, Button, Card, Icon, Screen, ScreenHeader, SectionTitle } from '@/components/ui';
 import { APP_CONFIG } from '@/constants/config';
 import { radius, spacing } from '@/constants/theme';
 import { makeStyles, useAppTheme } from '@/hooks/use-app-theme';
+import { shareInvite } from '@/lib/share-invite';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { useSession } from '@/providers/session-provider';
 
@@ -19,13 +20,6 @@ export default function HouseholdScreen() {
   const { user, isGuest, household, members, signOut, exitGuestMode, leaveHousehold, deleteAccount } = useSession();
   const [deleting, setDeleting] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
-
-  const shareCode = () => {
-    if (!household) return;
-    void Share.share({
-      message: `¡Únete a nuestro hogar "${household.name}" en ${APP_CONFIG.name}! Inicia sesión con Google y escribe este código: ${household.inviteCode}`,
-    });
-  };
 
   const confirmLeave = () => {
     Alert.alert('¿Salir del hogar?', 'Dejarás de ver la despensa, las recetas y las tareas compartidas. Puedes volver con el código.', [
@@ -83,9 +77,9 @@ export default function HouseholdScreen() {
               {household.inviteCode}
             </AppText>
             <AppText variant="small" tone="muted" style={styles.center}>
-              Tu pareja inicia sesión con Google y escribe este código para unirse.
+              Comparte el link: tu pareja lo abre y entra directo al hogar. También puede escribir el código en la app.
             </AppText>
-            <Button label="Compartir código" icon="share" onPress={shareCode} />
+            <Button label="Invitar con link" icon="share" onPress={() => shareInvite(household)} />
           </Card>
         ) : null}
 
@@ -111,7 +105,7 @@ export default function HouseholdScreen() {
               {members.length < 2 ? (
                 <View style={[styles.memberRow, members.length > 0 && styles.divider]}>
                   <AppText variant="small" tone="muted" style={styles.flex}>
-                    Aún estás solo en el hogar. Comparte el código para que tu pareja se una.
+                    Aún estás solo en el hogar. Comparte el link para que tu pareja se una.
                   </AppText>
                 </View>
               ) : null}

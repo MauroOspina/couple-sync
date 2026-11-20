@@ -12,6 +12,7 @@ import { useEffect, useMemo, type PropsWithChildren } from 'react';
 
 import { useAppTheme } from '@/hooks/use-app-theme';
 import { useAppUpdateCheck } from '@/hooks/use-app-update-check';
+import { useInviteWhileReady } from '@/hooks/use-invite-while-ready';
 import { SessionProvider, useSession } from '@/providers/session-provider';
 
 void SplashScreen.preventAutoHideAsync();
@@ -49,6 +50,7 @@ function RootNavigator({ fontsReady }: { fontsReady: boolean }) {
     if (ready) void SplashScreen.hideAsync();
   }, [ready]);
   useAppUpdateCheck(ready);
+  useInviteWhileReady();
 
   if (!fontsReady) return null;
 

@@ -5,15 +5,21 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText, Banner, Button, Card, TextField } from '@/components/ui';
 import { spacing } from '@/constants/theme';
 import { makeStyles } from '@/hooks/use-app-theme';
+import { usePendingInvite } from '@/hooks/use-pending-invite';
+import { shareInvite } from '@/lib/share-invite';
 import { useSession } from '@/providers/session-provider';
+import { clearPendingInvite } from '@/services/pending-invite';
 
 /** Crear un hogar nuevo o unirse al de la pareja con su código. */
 export default function SetupScreen() {
   const styles = useStyles();
   const insets = useSafeAreaInsets();
   const { displayName, createHousehold, joinHousehold, signOut, householdError, retryHousehold } = useSession();
+  const invite = usePendingInvite();
   const [name, setName] = useState('');
-  const [code, setCode] = useState('');
+  // Lo que escribe la persona; mientras no escriba nada, se muestra el código del link de invitación.
+  const [typedCode, setTypedCode] = useState<string | null>(null);
+  const code = typedCode ?? invite ?? '';
   const [busy, setBusy] = useState<'create' | 'join' | null>(null);
 
   const create = async () => {
@@ -24,7 +30,11 @@ export default function SetupScreen() {
     try {
       setBusy('create');
       const household = await createHousehold(name);
-      Alert.alert('¡Hogar creado! 🎉', `Comparte este código con tu pareja para que se una:\n\n${household.inviteCode}`);
+      void clearPendingInvite();
+      Alert.alert('¡Hogar creado! 🎉', `Invita a tu pareja con un link. También puede unirse con el código ${household.inviteCode}.`, [
+        { text: 'Después', style: 'cancel' },
+        { text: 'Invitar', onPress: () => shareInvite(household) },
+      ]);
     } catch (error) {
       Alert.alert('No se pudo crear el hogar', error instanceof Error ? error.message : 'Inténtalo de nuevo.');
     } finally {
@@ -40,6 +50,7 @@ export default function SetupScreen() {
     try {
       setBusy('join');
       const household = await joinHousehold(code);
+      void clearPendingInvite();
       Alert.alert('¡Listo! 💑', `Ahora comparten "${household.name}".`);
     } catch (error) {
       Alert.alert('No se pudo unir', error instanceof Error ? error.message : 'Verifica el código e inténtalo de nuevo.');
@@ -67,6 +78,14 @@ export default function SetupScreen() {
         </View>
       ) : null}
 
+      {invite ? (
+        <Card style={styles.card}>
+          <Banner icon="heart" tone="info" message="Te invitaron a un hogar. Toca «Unirme al hogar» para entrar." />
+          <TextField value={code} onChangeText={setTypedCode} autoCapitalize="characters" autoCorrect={false} />
+          <Button label="Unirme al hogar" onPress={join} loading={busy === 'join'} disabled={busy !== null} />
+        </Card>
+      ) : null}
+
       <Card style={styles.card}>
         <AppText variant="heading">🏠 Crear un hogar</AppText>
         <AppText variant="small" tone="muted">
@@ -84,20 +103,22 @@ export default function SetupScreen() {
         <View style={styles.line} />
       </View>
 
-      <Card style={styles.card}>
-        <AppText variant="heading">🔗 Unirme con un código</AppText>
-        <AppText variant="small" tone="muted">
-          Pídele a tu pareja el código que aparece en la pestaña Hogar.
-        </AppText>
-        <TextField
-          value={code}
-          onChangeText={setCode}
-          placeholder="HOGAR-XXXXXXXX"
-          autoCapitalize="characters"
-          autoCorrect={false}
-        />
-        <Button label="Unirme al hogar" variant="secondary" onPress={join} loading={busy === 'join'} disabled={busy !== null} />
-      </Card>
+      {invite ? null : (
+        <Card style={styles.card}>
+          <AppText variant="heading">🔗 Unirme con un código</AppText>
+          <AppText variant="small" tone="muted">
+            Pídele a tu pareja el link de invitación o el código que aparece en la pestaña Hogar.
+          </AppText>
+          <TextField
+            value={code}
+            onChangeText={setTypedCode}
+            placeholder="HOGAR-XXXXXXXX"
+            autoCapitalize="characters"
+            autoCorrect={false}
+          />
+          <Button label="Unirme al hogar" variant="secondary" onPress={join} loading={busy === 'join'} disabled={busy !== null} />
+        </Card>
+      )}
 
       <Button label="Cerrar sesión" variant="ghost" icon="logout" onPress={() => void signOut()} />
     </ScrollView>

@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Únete a un hogar en Nest</title>
+  <meta name="description" content="Te invitaron a compartir la despensa, el mercado, las recetas y las tareas del hogar en Nest.">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .code { font-size: 26px; font-weight: 800; letter-spacing: 2px; text-align: center; color: var(--primary); margin: 8px 0; word-break: break-all; }
+    .btn { display: block; width: 100%; padding: 14px 16px; border-radius: 999px; border: 0; font: inherit; font-weight: 700; text-align: center; text-decoration: none; cursor: pointer; margin-top: 12px; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-secondary { background: transparent; color: var(--primary); border: 1px solid var(--border); }
+    .center { text-align: center; }
+    ol { padding-left: 20px; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="logo center" aria-hidden="true">🏡</div>
+    <h1 class="center">Te invitaron a un hogar en Nest</h1>
+    <p class="muted center">Compartan la despensa, el mercado, las recetas y las tareas del hogar.</p>
+
+    <div id="invite" class="card" hidden>
+      <p class="muted center">Código de invitación</p>
+      <p id="code" class="code"></p>
+      <a id="open" class="btn btn-primary" hidden>Abrir en Nest</a>
+      <button id="copy" class="btn btn-secondary" type="button">Copiar código</button>
+    </div>
+
+    <div id="no-app" class="card" hidden>
+      <h2>¿Aún no tienes Nest?</h2>
+      <ol>
+        <li id="download-step">Pídele la app a quien te invitó.</li>
+        <li>Inicia sesión con Google.</li>
+        <li>Vuelve a abrir este link o escribe el código en «Unirme con un código».</li>
+      </ol>
+    </div>
+
+    <div id="invalid" class="card" hidden>
+      <p>Este link de invitación no es válido. Pídele a quien te invitó que lo comparta de nuevo desde Nest → Hogar.</p>
+    </div>
+
+    <p id="android-only" class="muted center" hidden>Por ahora Nest solo está disponible para Android.</p>
+    <p id="help" class="muted center" hidden>¿No abre? Abre este link en Chrome.</p>
+
+    <p class="center"><a href="index.html">¿Qué es Nest?</a> · <a href="privacy.html">Privacidad</a></p>
+  </main>
+
+  <script>
+    (function () {
+      var raw = '';
+      try { raw = decodeURIComponent(location.hash.slice(1)); } catch (e) { raw = ''; }
+      var code = raw.replace(/\s+/g, '').toUpperCase();
+      var show = function (id) { document.getElementById(id).hidden = false; };
+
+      // Mismo criterio que la app (src/domain/invite.ts): letras, números y guiones.
+      if (!/^[A-Z0-9-]{4,24}$/.test(code)) { show('invalid'); return; }
+
+      document.getElementById('code').textContent = code;
+      show('invite');
+
+      var copy = document.getElementById('copy');
+      copy.addEventListener('click', function () {
+        if (!navigator.clipboard) return;
+        navigator.clipboard.writeText(code).then(function () { copy.textContent = 'Código copiado ✓'; });
+      });
+
+      var noApp = /[?&]sin-app\b/.test(location.search);
+      if (/Android/i.test(navigator.userAgent)) {
+        // Si Nest no está instalada, Chrome vuelve a esta página con ?sin-app.
+        var fallback = location.origin + location.pathname + '?sin-app#' + encodeURIComponent(code);
+        var open = document.getElementById('open');
+        open.href = 'intent://join?code=' + encodeURIComponent(code) +
+          '#Intent;scheme=couplesync;package=com.couplesync.app;S.browser_fallback_url=' +
+          encodeURIComponent(fallback) + ';end';
+        open.hidden = false;
+        show(noApp ? 'no-app' : 'help');
+      } else {
+        show('android-only');
+        show('no-app');
+      }
+
+      // Link de descarga del APK de producción, si ya está publicado (docs/app-update.json).
+      fetch('app-update.json', { cache: 'no-store' })
+        .then(function (response) { return response.json(); })
+        .then(function (manifest) {
+          var url = manifest && manifest.production && manifest.production.url;
+          if (typeof url !== 'string' || url.indexOf('https://') !== 0) return;
+          var step = document.getElementById('download-step');
+          step.textContent = '';
+          var link = document.createElement('a');
+          link.href = url;
+          link.textContent = 'Descarga Nest';
+          step.appendChild(link);
+          step.appendChild(document.createTextNode(' e instálala.'));
+        })
+        .catch(function () {});
+    })();
+  </script>
+</body>
+</html>

@@ -13,6 +13,8 @@ type SymbolNames = Exclude<SymbolViewProps['name'], string>;
 const ICONS = {
   add: { ios: 'plus', android: 'add' },
   back: { ios: 'chevron.left', android: 'arrow_back' },
+  bell: { ios: 'bell', android: 'notifications' },
+  bellOff: { ios: 'bell.slash', android: 'notifications_off' },
   calendar: { ios: 'calendar', android: 'calendar_today' },
   cart: { ios: 'cart', android: 'shopping_cart' },
   cartAdd: { ios: 'cart.badge.plus', android: 'add_shopping_cart' },

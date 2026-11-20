@@ -2,7 +2,7 @@
   "expo": {
     "name": "Nest",
     "slug": "couple-app",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "couplesync",
@@ -38,6 +38,14 @@
             "text/*"
           ],
           "disableIOS": true
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#23845B",
+          "defaultChannel": "recordatorios"
         }
       ]
     ],

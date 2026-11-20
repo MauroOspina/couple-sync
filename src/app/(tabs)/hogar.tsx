@@ -4,6 +4,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
 import { Alert, ScrollView, View } from 'react-native';
 
+import { RemindersCard } from '@/components/household/reminders-card';
 import { SuggestionSheet } from '@/components/household/suggestion-sheet';
 import { AppText, Avatar, Button, Card, Icon, Screen, ScreenHeader, SectionTitle } from '@/components/ui';
 import { APP_CONFIG } from '@/constants/config';
@@ -112,6 +113,9 @@ export default function HouseholdScreen() {
             </Card>
           </>
         ) : null}
+
+        <SectionTitle title="Recordatorios" />
+        <RemindersCard />
 
         {isGuest ? (
           <Card style={styles.guestCard}>

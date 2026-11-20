@@ -11,6 +11,7 @@ import { LOCAL_SCOPE } from '@/services/collection';
 import * as householdsService from '@/services/households';
 import type { Household, HouseholdMember } from '@/services/households';
 import { deleteLegacyProducts } from '@/services/products';
+import { cancelAllReminders } from '@/services/reminders';
 import * as suggestionsService from '@/services/suggestions';
 
 /** loading → splash · signedOut → login · needsHousehold → crear/unirse · ready → pestañas */
@@ -186,6 +187,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
   const signOut = useCallback(async () => {
     await authService.signOut();
     setUser(null);
+    await cancelAllReminders();
     // Se conservan los datos del modo local; se borra lo del hogar.
     await clearAppStorage(key => key.endsWith(`:${LOCAL_SCOPE}`));
     await setGuestMode(false);
@@ -220,6 +222,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
     if (!user || !household) return;
     await householdsService.leaveHousehold(household.id, user.id);
     setHouseholdState({ userId: user.id, household: null, loaded: true, error: false });
+    await cancelAllReminders();
     await clearAppStorage(key => !key.includes(household.id) && key !== householdKey(user.id));
   }, [user, household]);
 
@@ -227,6 +230,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
     await authService.deleteAccount();
     await authService.signOut();
     setUser(null);
+    await cancelAllReminders();
     await clearAppStorage();
     await deleteLegacyProducts();
     setGuest({ loaded: true, value: false });

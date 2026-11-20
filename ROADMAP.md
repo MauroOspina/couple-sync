@@ -48,8 +48,11 @@ El esquema `couplesync://` ya está en el APK 1.1.0, así que basta JS + una pá
 - **Compartir**: `APP_CONFIG.links.join`; el mensaje de `hogar.tsx` (y el `Alert` de `setup.tsx` al crear) incluye el link **y** el código.
 - **Probar**: en un APK (no Expo Go), con `adb shell am start -a android.intent.action.VIEW -d "couplesync://join?code=HOGAR-..."` y abriendo el link desde WhatsApp.
 
-### 6.2 · Recordatorios de tareas (nativo → build)
+- Pendiente (opcional): el link muestra `mauroospina.github.io/couple-sync`. Opciones: dominio propio como dominio de GitHub Pages (`docs/CNAME`, los links viejos redirigen solos) u organización de GitHub (`<marca>.github.io`).
+
+### 6.2 · Recordatorios de tareas (nativo → build) · hecho 20 nov, sin commit
 Notificaciones **locales**: el teléfono las programa a partir de las tareas; no hace falta servidor ni Firebase.
+Implementado: `domain/reminders.ts` (un aviso por día con todas las tareas de ese día), `services/reminders.ts`, `hooks/use-chore-reminders.ts`, `components/household/reminders-card.tsx` (chips "No / 7 a. m. … 8 p. m."), ícono `assets/images/notification-icon.png`, `version` 1.2.0. **Commitear solo después de subir la 6.1 a `main`**: con `version` 1.2.0 los OTA ya no llegan a la 1.1.0.
 - `npx expo install expo-notifications` + plugin en `app.json` (ícono monocromo, color de `theme`).
 - **`src/domain/reminders.ts`** + test: `planReminders(chores, myUserId, today, { hour })` → `{ id, choreId, title, body, date }[]`. Solo tareas sin hacer, asignadas a mí o sin asignar. Expande las recurrentes con `nextDueDate` hasta 14 días. Vencidas: un aviso hoy si la hora aún no pasó. Máximo 40.
 - **Ajustes por teléfono** (AsyncStorage): activado y hora (por defecto 8:00). Tarjeta "Recordatorios" en Hogar: interruptor + chips de hora (7, 8, 9, 18, 20). Al activar, pedir permiso (Android 13+); si lo niega, explicarlo y dejarlo apagado.

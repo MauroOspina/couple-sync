@@ -7,6 +7,7 @@ import { Alert } from 'react-native';
 import { APP_CONFIG } from '@/constants/config';
 import { fonts } from '@/constants/theme';
 import { useAppTheme } from '@/hooks/use-app-theme';
+import { useChoreReminders } from '@/hooks/use-chore-reminders';
 import { ChoresProvider, useChores } from '@/providers/chores-provider';
 import { InventoryProvider, useInventory } from '@/providers/inventory-provider';
 import { RecipesProvider, useRecipes } from '@/providers/recipes-provider';
@@ -17,6 +18,7 @@ export default function TabsLayout() {
       <ChoresProvider>
         <RecipesProvider>
           <SharedTextReceiver />
+          <ChoreReminders />
           <Tabs />
         </RecipesProvider>
       </ChoresProvider>
@@ -49,6 +51,11 @@ function SharedTextReceiver() {
     router.navigate('/recetas');
   }, [hasShareIntent, shareIntent, resetShareIntent, importSharedText, canAddRecipe, router]);
 
+  return null;
+}
+
+function ChoreReminders() {
+  useChoreReminders();
   return null;
 }
 
